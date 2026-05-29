@@ -193,7 +193,7 @@ export const userService = {
     }
   },
 
-  addUser(user: Omit<UserDetail, 'id' | 'lastLogin' | 'progress'>) {
+  async addUser(user: Omit<UserDetail, 'id' | 'lastLogin' | 'progress'>) {
     const users = this.getUsers();
     
     // Generate valid UUID for Supabase
@@ -214,19 +214,21 @@ export const userService = {
       lastLogin: 'Chưa đăng nhập',
       progress: 0
     };
+
+    // Async push to Supabase
+    const res = await upsertToSupabase('vnpt_hr_users', 'hr_users', [newUser]);
+    if (!res.success) {
+      console.error("Lỗi thêm user Supabase:", res.error);
+      return { success: false, error: res.error, user: null };
+    }
+
     const updated = [...users, newUser];
     setLocal(STORAGE_KEYS.USERS, updated);
     this.notify();
 
-    // Async push to Supabase
-    upsertToSupabase('vnpt_hr_users', 'hr_users', [newUser])
-      .then(() => {
-        // Set default password "Vnpt@123" for new user
-        this.changePassword(newUser.id, "Vnpt@123").catch(e => console.error("Lỗi set mật khẩu mặc định", e));
-      })
-      .catch(console.error);
+    this.changePassword(newUser.id, "Vnpt@123").catch(e => console.error("Lỗi set mật khẩu mặc định", e));
 
-    return newUser;
+    return { success: true, error: null, user: newUser };
   },
 
   deleteUser(id: string) {
@@ -239,7 +241,7 @@ export const userService = {
     deleteFromSupabase('vnpt_hr_users', 'hr_users', 'id', [id]).catch(console.error);
   },
 
-  updateUser(id: string, updates: Partial<UserDetail>) {
+  async updateUser(id: string, updates: Partial<UserDetail>) {
     const users = this.getUsers();
     let target: UserDetail | null = null;
     const updated = users.map(u => {
@@ -253,8 +255,13 @@ export const userService = {
     this.notify();
 
     if (target) {
-      upsertToSupabase('vnpt_hr_users', 'hr_users', [target]).catch(console.error);
+      const res = await upsertToSupabase('vnpt_hr_users', 'hr_users', [target]);
+      if (!res.success) {
+        console.error("Lỗi cập nhật user Supabase:", res.error);
+        return { success: false, error: res.error };
+      }
     }
+    return { success: true, error: null };
   },
 
   async changePassword(userId: string, newPassword: string) {
