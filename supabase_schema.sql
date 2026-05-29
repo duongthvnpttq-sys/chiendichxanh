@@ -159,7 +159,7 @@ BEGIN
         -- Dùng EXECUTE linh hoạt để bỏ qua lỗi type UUID/TEXT của hệ thống cũ
         EXECUTE 'INSERT INTO public.vnpt_hr_users (id, code, name, username, role, unit, status, phone, email, "lastLogin", progress)
         VALUES (
-            $1, 
+            $1::uuid, 
             ''ADMIN01'', 
             ''Quản trị Hệ thống'', 
             ''duongth.tqg'', 
@@ -177,7 +177,7 @@ BEGIN
     -- Cập nhật mật khẩu cho ID (Dùng cast để tự tương thích TEXT hoặc UUID)
     EXECUTE 'INSERT INTO public.vnpt_passwords (user_id, password_hash)
     VALUES (
-        $1,
+        $1::uuid,
         ''f5e7360410bee0181ab94f44ad49760470666acd0c61a5f2c3f23b3b55a735b2''
     ) ON CONFLICT (user_id) DO UPDATE SET password_hash = EXCLUDED.password_hash;' USING v_user_id;
 END $$;
