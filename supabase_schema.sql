@@ -144,28 +144,36 @@ CREATE INDEX IF NOT EXISTS idx_vnpt_potentials_staffId ON public.vnpt_potential_
 -- v.v..
 
 -- 10. Tạo tài khoản Admin mặc định (duongth.tqg / Vnpt@123)
--- Sử dụng DO block và EXECUTE để tránh lỗi parse khi các cột vừa mới được thêm
+-- Thông qua block thực thi động và kiểm tra tồn tại
 DO $$
+DECLARE
+    v_user_id TEXT;
 BEGIN
-    EXECUTE 'INSERT INTO public.vnpt_hr_users (id, code, name, username, role, unit, status, phone, email, "lastLogin", progress)
-    VALUES (
-        ''00000000-0000-0000-0000-000000000001'', 
-        ''ADMIN01'', 
-        ''Quản trị Hệ thống'', 
-        ''duongth.tqg'', 
-        ''ADMIN'', 
-        ''VNPT Tuyên Quang'', 
-        ''ACTIVE'', 
-        ''0900000000'', 
-        ''duongth.tqg@vnpt.vn'', 
-        '''', 
-        0
-    ) ON CONFLICT (id) DO NOTHING;';
-END $$;
+    -- Tìm xem tài khoản đã tồn tại chưa
+    SELECT id INTO v_user_id FROM public.vnpt_hr_users WHERE username = 'duongth.tqg';
+    
+    IF v_user_id IS NULL THEN
+        v_user_id := '00000000-0000-0000-0000-000000000001';
+        EXECUTE 'INSERT INTO public.vnpt_hr_users (id, code, name, username, role, unit, status, phone, email, "lastLogin", progress)
+        VALUES (
+            $1, 
+            ''ADMIN01'', 
+            ''Quản trị Hệ thống'', 
+            ''duongth.tqg'', 
+            ''ADMIN'', 
+            ''VNPT Tuyên Quang'', 
+            ''ACTIVE'', 
+            ''0900000000'', 
+            ''duongth.tqg@vnpt.vn'', 
+            '''', 
+            0
+        ) ON CONFLICT (id) DO NOTHING;' USING v_user_id;
+    END IF;
 
--- Chú ý: Mã băm SHA-256 của chuỗi "Vnpt@123" là "f5e7360410bee0181ab94f44ad49760470666acd0c61a5f2c3f23b3b55a735b2"
-INSERT INTO public.vnpt_passwords (user_id, password_hash)
-VALUES (
-    '00000000-0000-0000-0000-000000000001',
-    'f5e7360410bee0181ab94f44ad49760470666acd0c61a5f2c3f23b3b55a735b2'
-) ON CONFLICT (user_id) DO UPDATE SET password_hash = EXCLUDED.password_hash;
+    -- Chú ý: Mã băm SHA-256 của chuỗi "Vnpt@123" là "f5e7360410bee0181ab94f44ad49760470666acd0c61a5f2c3f23b3b55a735b2"
+    EXECUTE 'INSERT INTO public.vnpt_passwords (user_id, password_hash)
+    VALUES (
+        $1,
+        ''f5e7360410bee0181ab94f44ad49760470666acd0c61a5f2c3f23b3b55a735b2''
+    ) ON CONFLICT (user_id) DO UPDATE SET password_hash = EXCLUDED.password_hash;' USING v_user_id;
+END $$;
