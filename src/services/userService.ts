@@ -11,7 +11,11 @@ async function fetchFromSupabase<T>(table: string, type: string, defaultVal: T):
 
 async function upsertToSupabase(table: string, type: string, records: any[]) {
   const { error } = await supabase.from(table).upsert(records);
-  if (error) console.error("upsertToSupabase error", error);
+  if (error) {
+    console.error("upsertToSupabase error", error);
+    return { success: false, error };
+  }
+  return { success: true, error: null };
 }
 
 async function deleteFromSupabase(table: string, type: string, idField: string, ids: string[]) {
@@ -191,9 +195,22 @@ export const userService = {
 
   addUser(user: Omit<UserDetail, 'id' | 'lastLogin' | 'progress'>) {
     const users = this.getUsers();
+    
+    // Generate valid UUID for Supabase
+    const genUUID = () => {
+      try {
+        return crypto.randomUUID();
+      } catch (e) {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+          const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+          return v.toString(16);
+        });
+      }
+    };
+    
     const newUser: UserDetail = {
       ...user,
-      id: 'u' + Math.random().toString(36).substr(2, 9),
+      id: genUUID(),
       lastLogin: 'Chưa đăng nhập',
       progress: 0
     };
@@ -202,7 +219,12 @@ export const userService = {
     this.notify();
 
     // Async push to Supabase
-    upsertToSupabase('vnpt_hr_users', 'hr_users', [newUser]).catch(console.error);
+    upsertToSupabase('vnpt_hr_users', 'hr_users', [newUser])
+      .then(() => {
+        // Set default password "Vnpt@123" for new user
+        this.changePassword(newUser.id, "Vnpt@123").catch(e => console.error("Lỗi set mật khẩu mặc định", e));
+      })
+      .catch(console.error);
 
     return newUser;
   },
