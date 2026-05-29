@@ -149,7 +149,7 @@ DO $$
 BEGIN
     EXECUTE 'INSERT INTO public.vnpt_hr_users (id, code, name, username, role, unit, status, phone, email, "lastLogin", progress)
     VALUES (
-        ''admin-duongth-tqg-001'', 
+        ''00000000-0000-0000-0000-000000000001'', 
         ''ADMIN01'', 
         ''Quản trị Hệ thống'', 
         ''duongth.tqg'', 
@@ -166,6 +166,6 @@ END $$;
 -- Chú ý: Mã băm SHA-256 của chuỗi "Vnpt@123" là "f5e7360410bee0181ab94f44ad49760470666acd0c61a5f2c3f23b3b55a735b2"
 INSERT INTO public.vnpt_passwords (user_id, password_hash)
 VALUES (
-    'admin-duongth-tqg-001',
+    '00000000-0000-0000-0000-000000000001',
     'f5e7360410bee0181ab94f44ad49760470666acd0c61a5f2c3f23b3b55a735b2'
 ) ON CONFLICT (user_id) DO UPDATE SET password_hash = EXCLUDED.password_hash;
