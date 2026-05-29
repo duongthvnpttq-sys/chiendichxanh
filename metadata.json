@@ -1,0 +1,11 @@
+{
+  "name": "VNPT Sales & Task Management",
+  "description": "Quản trị lực lượng bán hàng và giao việc chăm sóc tập khách hàng Viễn thông - CNTT.",
+  "requestFramePermissions": [
+    "camera",
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

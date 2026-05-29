@@ -1,0 +1,169 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "App user (staff or manager)",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "employeeCode": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "roleId": { "type": "string" },
+        "unitId": { "type": "string" },
+        "teamId": { "type": "string" },
+        "territoryIds": { "type": "array" },
+        "phone": { "type": "string" },
+        "username": { "type": "string" },
+        "avatar": { "type": "string" },
+        "status": { "type": "string", "enum": ["ACTIVE", "LEAVE", "LOCKED", "RETIRED"] },
+        "lastLogin": { "type": "string", "format": "date-time" },
+        "deviceId": { "type": "string" }
+      },
+      "required": ["uid", "employeeCode", "roleId", "email", "status"]
+    },
+    "Role": {
+      "title": "Role",
+      "description": "System roles and permissions",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "permissions": { "type": "array" }
+      },
+      "required": ["id", "name"]
+    },
+    "Territory": {
+      "title": "Territory",
+      "description": "Geographical management units",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "province": { "type": "string" },
+        "district": { "type": "string" },
+        "ward": { "type": "string" },
+        "village": { "type": "string" }
+      },
+      "required": ["id", "province", "district"]
+    },
+    "Log": {
+      "title": "Log",
+      "description": "Activity logs for audit",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "action": { "type": "string" },
+        "details": { "type": "string" },
+        "ip": { "type": "string" },
+        "device": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "action", "timestamp"]
+    },
+    "Customer": {
+      "title": "Customer",
+      "description": "VNPT Customer record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "address": { "type": "string" },
+        "district": { "type": "string" },
+        "ward": { "type": "string" },
+        "location": {
+          "type": "object",
+          "properties": {
+            "lat": { "type": "number" },
+            "lng": { "type": "number" }
+          }
+        },
+        "services": { "type": "array" },
+        "currentPackage": { "type": "string" },
+        "revenue": { "type": "number" },
+        "customerGroup": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "required": ["id", "name", "phone"]
+    },
+    "Campaign": {
+      "title": "Campaign",
+      "description": "Marketing or Sales campaign",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "code": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "type": { "type": "string" },
+        "startDate": { "type": "string", "format": "date-time" },
+        "endDate": { "type": "string", "format": "date-time" },
+        "kpiGoal": { "type": "number" },
+        "unit": { "type": "string" },
+        "status": { "type": "string", "enum": ["ACTIVE", "INACTIVE", "COMPLETED"] }
+      },
+      "required": ["id", "code", "name", "status"]
+    },
+    "Assignment": {
+      "title": "Assignment",
+      "description": "Task assigned to a staff for a customer",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "customerId": { "type": "string" },
+        "staffId": { "type": "string" },
+        "campaignId": { "type": "string" },
+        "status": { "type": "string", "enum": ["UNASSIGNED", "PENDING", "IN_PROGRESS", "COMPLETED", "SUCCESS", "FAILED", "LOCKED", "RESCHEDULED"] },
+        "assignedDate": { "type": "string", "format": "date-time" },
+        "priority": { "type": "string", "enum": ["LOW", "MEDIUM", "HIGH"] },
+        "deadline": { "type": "string", "format": "date-time" },
+        "outcome": { "type": "string" },
+        "notes": { "type": "string" },
+        "checkInLocation": {
+          "type": "object",
+          "properties": {
+            "lat": { "type": "number" },
+            "lng": { "type": "number" },
+            "timestamp": { "type": "string", "format": "date-time" }
+          }
+        },
+        "images": { "type": "array" },
+        "lockedBy": { "type": "string" },
+        "lockedTime": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "customerId", "staffId", "status", "campaignId"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "/roles/{roleId}": {
+      "schema": "Role",
+      "description": "System roles"
+    },
+    "/territories/{territoryId}": {
+      "schema": "Territory",
+      "description": "Territory management"
+    },
+    "/logs/{logId}": {
+      "schema": "Log",
+      "description": "Activity logs"
+    },
+    "/customers/{customerId}": {
+      "schema": "Customer",
+      "description": "Customer database"
+    },
+    "/campaigns/{campaignId}": {
+      "schema": "Campaign",
+      "description": "Available campaigns"
+    },
+    "/assignments/{assignmentId}": {
+      "schema": "Assignment",
+      "description": "Task assignments"
+    }
+  }
+}

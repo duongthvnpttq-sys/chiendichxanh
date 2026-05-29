@@ -1,0 +1,766 @@
+
+let lastCustomersSync = 0;
+let lastAssignmentsSync = 0;
+let lastPotentialsSync = 0;
+let lastCategoriesSync = 0;
+let lastBatchesSync = 0;
+const SYNC_INTERVAL = 2000; // 2 seconds for near real-time experiences
+
+import { createClient } from "@supabase/supabase-js";
+
+const rawUrl = "https://sgtuwnepwhucemvtugeu.supabase.co/rest/v1/";
+const SUPABASE_URL = rawUrl.replace(/\/rest\/v1\/?$/, ""); 
+const SUPABASE_KEY = "sb_publishable__YRNMlCYXaRFDkV88iNezA_1NNlolkG";
+
+export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+export interface Customer {
+  id: string;
+  name: string;
+  phone: string;
+  address?: string;
+  revenue?: number;
+  services?: string[];
+  region?: string;
+  categoryId?: string;
+  campaignId?: string;
+  // New fields for distribution
+  territory?: string;
+  salesManager?: string;
+  technicalManager?: string;
+  subscriptionId?: string;
+  addressDetail?: string;
+  createdAt?: string;
+  createdBy?: string;
+}
+
+export interface Assignment {
+  id?: string;
+  customerId: string;
+  staffId: string;
+  campaignId: string;
+  status: 'UNASSIGNED' | 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'SUCCESS' | 'FAILED' | 'LOCKED' | 'RESCHEDULED';
+  assignedDate: any;
+  deadline?: string;
+  outcome?: string;
+  notes?: string;
+  checkInLocation?: { lat: number; lng: number; timestamp: string };
+  images?: string[];
+  managerNotes?: string;
+  priority?: 'LOW' | 'MEDIUM' | 'HIGH';
+  taskType?: string;
+  assignedBy?: string;
+}
+
+const STORAGE_KEYS = {
+  CUSTOMERS: 'vnpt_customers',
+  ASSIGNMENTS: 'vnpt_assignments',
+  BATCHES: 'vnpt_batches',
+  CATEGORIES: 'vnpt_categories',
+  POTENTIAL_CUSTOMERS: 'vnpt_potential_customers',
+  DELETED_POTENTIALS: 'vnpt_deleted_potentials',
+};
+
+import { PROGRAM_CATEGORIES as DEFAULT_CATEGORIES, BATCHES as DEFAULT_BATCHES } from "../constants/campaignData";
+
+export interface ProgramCategory {
+  id: string;
+  name: string;
+  description: string;
+  services: string[];
+  createdAt?: string;
+  createdBy?: string;
+}
+
+const INITIAL_CATEGORIES: ProgramCategory[] = DEFAULT_CATEGORIES;
+
+export interface ImplementationBatch {
+  id: string;
+  programId: string;
+  name: string;
+  startDate: string;
+  endDate: string;
+  status: 'ACTIVE' | 'UPCOMING' | 'COMPLETED';
+  createdAt?: string;
+  createdBy?: string;
+}
+
+const INITIAL_BATCHES: ImplementationBatch[] = DEFAULT_BATCHES;
+
+export interface PotentialCustomer {
+  id: string;
+  name: string;
+  phone: string;
+  address: string;
+  coordinates?: { lat: number; lng: number };
+  previousBillingExpiration?: string;
+  painPoints?: string;
+  salesNotes?: string;
+  staffId?: string;
+  status: 'NEW' | 'CONTACTED' | 'CONVERTED';
+  createdAt: string;
+  createdBy?: string;
+}
+
+const INITIAL_POTENTIAL_CUSTOMERS: PotentialCustomer[] = [];
+
+let memoryCache: Record<string, any> = {};
+
+const getLocal = <T>(key: string, def: T): T => {
+  if (memoryCache[key]) return memoryCache[key];
+  try {
+    const data = localStorage.getItem(key);
+    const parsed = data ? JSON.parse(data) : def;
+    memoryCache[key] = parsed;
+    return parsed;
+  } catch (e) {
+    console.error("Local storage read error for", key, e);
+    return def;
+  }
+};
+
+const setLocal = (key: string, data: any) => {
+  memoryCache[key] = data;
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch (e: any) {
+    if (e.name === "QuotaExceededError" || e.name === "NS_ERROR_DOM_QUOTA_REACHED") {
+      console.warn("LocalStorage quota exceeded. Attempting to prune data...");
+      if (key === STORAGE_KEYS.ASSIGNMENTS && Array.isArray(data)) {
+        const pruned = data.slice(-500);
+        memoryCache[key] = pruned;
+        try {
+          localStorage.setItem(key, JSON.stringify(pruned));
+          console.log("Pruned assignments to 500 items.");
+          return;
+        } catch (innerE) {
+          console.error("Failed even after pruning assignments:", innerE);
+        }
+      }
+      console.error("LocalStorage write failed:", e);
+    } else {
+      console.error("LocalStorage write failed:", e);
+    }
+  }
+};
+
+
+export async function fetchFromSupabase<T>(table1: string, table2: string, defaultValue: T): Promise<T> {
+  try {
+    const PAGE_SIZE = 1000;
+    const fetchAll = async (tableName: string) => {
+      let pageData: any[] = [];
+      let records: any[] = [];
+      let start = 0;
+      do {
+        const { data, error } = await supabase.from(tableName).select('*').range(start, start + PAGE_SIZE - 1);
+        if (error) throw error;
+        pageData = data || [];
+        records = records.concat(pageData);
+        start += PAGE_SIZE;
+      } while (pageData.length === PAGE_SIZE);
+      return records;
+    };
+
+    try {
+      const data = await fetchAll(table1);
+      return data as T;
+    } catch (error: any) {
+      if (error && error.code === '42P01') { // Table not found
+        try {
+          const data2 = await fetchAll(table2);
+          return data2 as T;
+        } catch (error2: any) {
+          console.warn(`Supabase fetch failed on both ${table1} and ${table2}:`, error2.message);
+        }
+      } else {
+         console.warn(`Supabase fetch failed on ${table1}:`, error.message);
+      }
+    }
+  } catch (err) {
+    console.error(`Error querying Supabase for ${table1}:`, err);
+  }
+  return defaultValue;
+}
+
+export async function upsertToSupabase(table1: string, table2: string, records: any[]) {
+  if (!records || records.length === 0) return;
+  const CHUNK_SIZE = 500;
+  try {
+    for (let i = 0; i < records.length; i += CHUNK_SIZE) {
+      const chunk = records.slice(i, i + CHUNK_SIZE);
+      const { error } = await supabase.from(table1).upsert(chunk);
+      if (error && error.code === '42P01') {
+        const { error: error2 } = await supabase.from(table2).upsert(chunk);
+        if (error2) {
+          console.warn(`Supabase upsert failed on both ${table1} and ${table2}:`, error2.message);
+        }
+      } else if (error) {
+         console.warn(`Supabase upsert failed on ${table1}:`, error.message);
+      }
+    }
+  } catch (err) {
+    console.error(`Error upserting to Supabase for ${table1}:`, err);
+  }
+}
+
+export async function deleteFromSupabase(table1: string, table2: string, keyName: string, keys: any[]) {
+  if (!keys || keys.length === 0) return;
+  const CHUNK_SIZE = 500;
+  try {
+    for (let i = 0; i < keys.length; i += CHUNK_SIZE) {
+      const chunk = keys.slice(i, i + CHUNK_SIZE);
+      const { error } = await supabase.from(table1).delete().in(keyName, chunk);
+      if (error && error.code === '42P01') {
+        const { error: error2 } = await supabase.from(table2).delete().in(keyName, chunk);
+        if (error2) {
+           console.warn(`Supabase delete failed on both ${table1} and ${table2}:`, error2.message);
+        }
+      } else if (error) {
+         console.warn(`Supabase delete failed on ${table1}:`, error.message);
+      }
+    }
+  } catch (err) {
+    console.error(`Error deleting from Supabase for ${table1}:`, err);
+  }
+}
+
+const listeners: Set<(data: any) => void> = new Set();
+
+const INITIAL_CUSTOMERS: Customer[] = [];
+
+const INITIAL_ASSIGNMENTS: Assignment[] = [];
+
+export const dataService = {
+  // Flag to track active async syncs
+  _syncing: { customers: false, assignments: false, batches: false, categories: false, potentials: false },
+
+  // Customers
+  async getCustomers() {
+     let data = getLocal<Customer[]>(STORAGE_KEYS.CUSTOMERS, INITIAL_CUSTOMERS);
+     const now = Date.now();
+     
+     if (this._syncing.customers) return data; // Prevent multiple syncs
+
+     if (now - lastCustomersSync > SYNC_INTERVAL || (data.length === 0 && now - lastCustomersSync > 5000)) {
+         this._syncing.customers = true;
+         // Trigger background sync
+         fetchFromSupabase<Customer[]>('vnpt_customers', 'customers', []).then(dbData => {
+           if (dbData) {
+             const localData = getLocal<Customer[]>(STORAGE_KEYS.CUSTOMERS, []);
+             const dbIds = new Set(dbData.map(c => c.id));
+             const localOnly = localData.filter(c => !dbIds.has(c.id));
+             
+             if (localOnly.length > 0) {
+               upsertToSupabase('vnpt_customers', 'customers', localOnly).catch(console.error);
+             }
+             
+             const merged = [...dbData];
+             const mergedIds = new Set(merged.map(c => c.id));
+             for (const item of localData) {
+               if (!mergedIds.has(item.id)) merged.push(item);
+             }
+             
+             setLocal(STORAGE_KEYS.CUSTOMERS, merged);
+             lastCustomersSync = Date.now();
+             this.notify();
+           }
+         }).catch(err => {
+           console.error("Customers Supabase sync failed:", err);
+         }).finally(() => {
+           this._syncing.customers = false;
+         });
+     }
+     
+     return data;
+  },
+
+  async addCustomersBulk(customers: Customer[]) {
+    const current = await this.getCustomers();
+    const customerMap = new Map<string, Customer>(current.map(c => [c.id, c]));
+    
+    let addedCount = 0;
+    let updatedCount = 0;
+    const incomingIds = new Set<string>();
+    const upsertList: Customer[] = [];
+
+    for (const c of customers) {
+      if (!c) continue;
+      const normalizedId = String(c.id || '').trim();
+      if (!normalizedId || incomingIds.has(normalizedId)) continue;
+      
+      incomingIds.add(normalizedId);
+
+      const existing = customerMap.get(normalizedId);
+      const updatedCustomer = existing 
+        ? { ...existing, ...c, id: normalizedId }
+        : { ...c, id: normalizedId };
+
+      if (existing) {
+        updatedCount++;
+      } else {
+        addedCount++;
+      }
+
+      customerMap.set(normalizedId, updatedCustomer);
+      upsertList.push(updatedCustomer);
+    }
+
+    const updatedList = Array.from(customerMap.values());
+    setLocal(STORAGE_KEYS.CUSTOMERS, updatedList);
+
+    if (upsertList.length > 0) {
+      upsertToSupabase('vnpt_customers', 'customers', upsertList).catch(console.error);
+    }
+
+    this.notify();
+    
+    return {
+      added: addedCount,
+      updated: updatedCount,
+      total: customers.length
+    };
+  },
+
+  async deleteCustomersBulk(ids: string[]) {
+    const current = await this.getCustomers();
+    const updated = current.filter(c => !ids.includes(c.id));
+    setLocal(STORAGE_KEYS.CUSTOMERS, updated);
+    
+    // Also cleanup assignments
+    const currentAssignments = await this.getAssignments();
+    const updatedAssignments = currentAssignments.filter(a => !ids.includes(a.customerId));
+    setLocal(STORAGE_KEYS.ASSIGNMENTS, updatedAssignments);
+
+    await deleteFromSupabase('vnpt_customers', 'customers', 'id', ids);
+    await deleteFromSupabase('vnpt_assignments', 'assignments', 'customerId', ids);
+    
+    this.notify();
+  },
+
+  // Assignments
+  async getAssignments(campaignId?: string) {
+    let assignments = getLocal<Assignment[]>(STORAGE_KEYS.ASSIGNMENTS, INITIAL_ASSIGNMENTS);
+    const now = Date.now();
+    
+    if (!this._syncing.assignments && (now - lastAssignmentsSync > SYNC_INTERVAL || (assignments.length === 0 && now - lastAssignmentsSync > 5000))) {
+         this._syncing.assignments = true;
+         fetchFromSupabase<Assignment[]>('vnpt_assignments', 'assignments', []).then(dbAssignments => {
+           if (dbAssignments) {
+             const localData = getLocal<Assignment[]>(STORAGE_KEYS.ASSIGNMENTS, []);
+             const dbIds = new Set(dbAssignments.map(a => `${a.customerId}_${a.campaignId}`));
+             const localOnly = localData.filter(a => !dbIds.has(`${a.customerId}_${a.campaignId}`));
+             
+             if (localOnly.length > 0) {
+               upsertToSupabase('vnpt_assignments', 'assignments', localOnly).catch(console.error);
+             }
+             
+             const merged = [...dbAssignments];
+             const mergedIds = new Set(merged.map(a => `${a.customerId}_${a.campaignId}`));
+             for (const item of localData) {
+               if (!mergedIds.has(`${item.customerId}_${item.campaignId}`)) merged.push(item);
+             }
+             
+             setLocal(STORAGE_KEYS.ASSIGNMENTS, merged);
+             lastAssignmentsSync = Date.now();
+             this.notify();
+           }
+         }).catch(err => console.error("Assignments sync fail:", err))
+           .finally(() => this._syncing.assignments = false);
+    }
+    
+    if (campaignId && campaignId !== 'all') {
+      assignments = assignments.filter(a => a.campaignId === campaignId);
+    }
+    return assignments;
+  },
+
+  async createAssignments(assignments: Assignment[]) {
+    const current = await this.getAssignments();
+    const results = { success: 0, updated: 0, skipped: 0 };
+    
+    // Use a map for quick lookup and update
+    const assignmentMap = new Map<string, Assignment>(current.map(a => [`${a.customerId}_${a.campaignId}`, a]));
+    const upsertList: Assignment[] = [];
+
+    assignments.forEach(a => {
+        const key = `${a.customerId}_${a.campaignId}`;
+        const existing = assignmentMap.get(key);
+        let targetAssignment: Assignment;
+
+        if (existing) {
+            // Update existing assignment (Adjustment)
+            targetAssignment = { 
+                ...existing, 
+                staffId: a.staffId,
+                status: (a.status || existing.status) as Assignment['status'],
+                assignedDate: new Date().toISOString(),
+                deadline: a.deadline || existing.deadline,
+                managerNotes: a.managerNotes || existing.managerNotes,
+                priority: a.priority || existing.priority,
+                taskType: a.taskType || existing.taskType
+            };
+            results.updated++;
+            results.success++;
+        } else {
+            // Create new
+            const id = Math.random().toString(36).substr(2, 9);
+            targetAssignment = { 
+                ...a, 
+                id, 
+                assignedDate: new Date().toISOString() 
+            };
+            results.success++;
+        }
+        assignmentMap.set(key, targetAssignment);
+        upsertList.push(targetAssignment);
+    });
+
+    setLocal(STORAGE_KEYS.ASSIGNMENTS, Array.from(assignmentMap.values()));
+
+    if (upsertList.length > 0) {
+      upsertToSupabase('vnpt_assignments', 'assignments', upsertList).catch(console.error);
+    }
+
+    this.notify();
+    return results;
+  },
+
+  async updateAssignment(id: string, updates: Partial<Assignment>) {
+    const current = getLocal<Assignment[]>(STORAGE_KEYS.ASSIGNMENTS, []);
+    let target: Assignment | null = null;
+    const updated = current.map(a => {
+      if (a.id === id) {
+        target = { ...a, ...updates };
+        return target;
+      }
+      return a;
+    });
+    setLocal(STORAGE_KEYS.ASSIGNMENTS, updated);
+
+    if (target) {
+      upsertToSupabase('vnpt_assignments', 'assignments', [target]).catch(console.error);
+    }
+
+    this.notify();
+  },
+
+  // Batches
+  async getBatches() {
+    let batches = getLocal<ImplementationBatch[]>(STORAGE_KEYS.BATCHES, INITIAL_BATCHES);
+    const now = Date.now();
+    if (!this._syncing.batches && (now - lastBatchesSync > SYNC_INTERVAL || batches.length === 0)) {
+      this._syncing.batches = true;
+      fetchFromSupabase<ImplementationBatch[]>('vnpt_batches', 'batches', []).then(dbBatches => {
+        if (dbBatches && dbBatches.length > 0) {
+          const localData = getLocal<ImplementationBatch[]>(STORAGE_KEYS.BATCHES, []);
+          const dbIds = new Set(dbBatches.map(b => b.id));
+          const localOnly = localData.filter(b => !dbIds.has(b.id));
+          
+          if (localOnly.length > 0) {
+            upsertToSupabase('vnpt_batches', 'batches', localOnly).catch(console.error);
+          }
+          const merged = [...dbBatches];
+          const mergedIds = new Set(merged.map(b => b.id));
+          for (const item of localData) {
+            if (!mergedIds.has(item.id)) merged.push(item);
+          }
+          
+          setLocal(STORAGE_KEYS.BATCHES, merged);
+          lastBatchesSync = Date.now();
+          this.notify();
+        } else if (dbBatches && dbBatches.length === 0) {
+          if (getLocal(STORAGE_KEYS.BATCHES, null) !== null) {
+            const localData = getLocal<ImplementationBatch[]>(STORAGE_KEYS.BATCHES, []);
+            if (localData.length > 0) {
+              upsertToSupabase('vnpt_batches', 'batches', localData).catch(console.error);
+            }
+            lastBatchesSync = Date.now();
+          } else {
+            upsertToSupabase('vnpt_batches', 'batches', batches).catch(console.error);
+          }
+        }
+      }).catch(err => console.error("Batches sync fail:", err))
+        .finally(() => this._syncing.batches = false);
+    }
+    return batches;
+  },
+  //
+  async addBatch(batch: Omit<ImplementationBatch, 'id'>) {
+    const current = await this.getBatches();
+    const newBatch = { ...batch, id: 'b' + Math.random().toString(36).substr(2, 9) };
+    setLocal(STORAGE_KEYS.BATCHES, [...current, newBatch]);
+
+    await upsertToSupabase('vnpt_batches', 'batches', [newBatch]);
+
+    this.notify();
+    return newBatch;
+  },
+
+  async deleteBatch(id: string) {
+    const current = await this.getBatches();
+    setLocal(STORAGE_KEYS.BATCHES, current.filter(b => b.id !== id));
+    
+    // Also cleanup assignments for this batch
+    const currentAssignments = await this.getAssignments();
+    setLocal(STORAGE_KEYS.ASSIGNMENTS, currentAssignments.filter(a => a.campaignId !== id));
+
+    await deleteFromSupabase('vnpt_assignments', 'assignments', 'campaignId', [id]);
+    await deleteFromSupabase('vnpt_batches', 'batches', 'id', [id]);
+    
+    this.notify();
+  },
+
+  async updateBatch(id: string, updates: Partial<ImplementationBatch>) {
+    const current = await this.getBatches();
+    let target: ImplementationBatch | null = null;
+    const updated = current.map(b => {
+      if (b.id === id) {
+        target = { ...b, ...updates };
+        return target;
+      }
+      return b;
+    });
+    setLocal(STORAGE_KEYS.BATCHES, updated);
+
+    if (target) {
+      await upsertToSupabase('vnpt_batches', 'batches', [target]);
+    }
+
+    this.notify();
+  },
+
+  // Categories
+  async getCategories() {
+    let categories = getLocal<ProgramCategory[]>(STORAGE_KEYS.CATEGORIES, INITIAL_CATEGORIES);
+    const now = Date.now();
+    if (!this._syncing.categories && (now - lastCategoriesSync > SYNC_INTERVAL || categories.length === 0)) {
+      this._syncing.categories = true;
+      fetchFromSupabase<ProgramCategory[]>('vnpt_categories', 'categories', []).then(dbCategories => {
+        if (dbCategories && dbCategories.length > 0) {
+          const localData = getLocal<ProgramCategory[]>(STORAGE_KEYS.CATEGORIES, []);
+          const dbIds = new Set(dbCategories.map(c => c.id));
+          const localOnly = localData.filter(c => !dbIds.has(c.id));
+          
+          if (localOnly.length > 0) {
+            upsertToSupabase('vnpt_categories', 'categories', localOnly).catch(console.error);
+          }
+          const merged = [...dbCategories];
+          const mergedIds = new Set(merged.map(c => c.id));
+          for (const item of localData) {
+            if (!mergedIds.has(item.id)) merged.push(item);
+          }
+          
+          setLocal(STORAGE_KEYS.CATEGORIES, merged);
+          lastCategoriesSync = Date.now();
+          this.notify();
+        } else if (dbCategories && dbCategories.length === 0) {
+          if (getLocal(STORAGE_KEYS.CATEGORIES, null) !== null) {
+            const localData = getLocal<ProgramCategory[]>(STORAGE_KEYS.CATEGORIES, []);
+            if (localData.length > 0) {
+              upsertToSupabase('vnpt_categories', 'categories', localData).catch(console.error);
+            }
+            lastCategoriesSync = Date.now();
+          } else {
+            upsertToSupabase('vnpt_categories', 'categories', categories).catch(console.error);
+          }
+        }
+      }).catch(err => console.error("Categories sync fail:", err))
+        .finally(() => this._syncing.categories = false);
+    }
+    return categories;
+  },
+  //
+  async addCategory(cat: Omit<ProgramCategory, 'id'>) {
+    const current = await this.getCategories();
+    const newCat = { ...cat, id: 'cat' + Math.random().toString(36).substr(2, 9) };
+    setLocal(STORAGE_KEYS.CATEGORIES, [...current, newCat]);
+
+    await upsertToSupabase('vnpt_categories', 'categories', [newCat]);
+
+    this.notify();
+    return newCat;
+  },
+
+  async updateCategory(id: string, updates: Partial<ProgramCategory>) {
+    const current = await this.getCategories();
+    let target: ProgramCategory | null = null;
+    const updated = current.map(c => {
+      if (c.id === id) {
+        target = { ...c, ...updates };
+        return target;
+      }
+      return c;
+    });
+    setLocal(STORAGE_KEYS.CATEGORIES, updated);
+
+    if (target) {
+      await upsertToSupabase('vnpt_categories', 'categories', [target]);
+    }
+
+    this.notify();
+  },
+
+  async deleteCategory(id: string) {
+    const current = await this.getCategories();
+    const batchIds = (await this.getBatches())
+      .filter(b => b.programId === id)
+      .map(b => b.id);
+    
+    setLocal(STORAGE_KEYS.CATEGORIES, current.filter(c => c.id !== id));
+    
+    // Cleanup batches associated with this category
+    const currentBatches = await this.getBatches();
+    setLocal(STORAGE_KEYS.BATCHES, currentBatches.filter(b => b.programId !== id));
+    
+    // Cleanup assignments for all batches in this category
+    if (batchIds.length > 0) {
+      const currentAssignments = await this.getAssignments();
+      setLocal(STORAGE_KEYS.ASSIGNMENTS, currentAssignments.filter(a => !batchIds.includes(a.campaignId)));
+    }
+
+    try {
+      if (batchIds.length > 0) {
+        await deleteFromSupabase('vnpt_assignments', 'assignments', 'campaignId', batchIds);
+        await deleteFromSupabase('vnpt_batches', 'batches', 'id', batchIds);
+      }
+      await deleteFromSupabase('vnpt_categories', 'categories', 'id', [id]);
+    } catch (err: any) {
+      console.warn("Supabase delete category error - continuing locally:", err.message);
+    }
+    
+    this.notify();
+  },
+
+  async getPotentialCustomers() {
+    let potentials = getLocal<PotentialCustomer[]>(STORAGE_KEYS.POTENTIAL_CUSTOMERS, INITIAL_POTENTIAL_CUSTOMERS);
+    const now = Date.now();
+    if (!this._syncing.potentials && (now - lastPotentialsSync > SYNC_INTERVAL || (potentials.length === 0 && now - lastPotentialsSync > 5000))) {
+      this._syncing.potentials = true;
+      fetchFromSupabase<PotentialCustomer[]>('vnpt_potential_customers', 'potential_customers', []).then(async dbPotentials => {
+        if (dbPotentials) {
+          const deletedIds = getLocal<string[]>(STORAGE_KEYS.DELETED_POTENTIALS, []);
+          
+          if (deletedIds.length > 0) {
+            const stillInDb = dbPotentials.filter(p => deletedIds.includes(p.id));
+            if (stillInDb.length > 0) {
+              await deleteFromSupabase('vnpt_potential_customers', 'potential_customers', 'id', stillInDb.map(x => x.id));
+            }
+            dbPotentials = dbPotentials.filter(p => !deletedIds.includes(p.id));
+          }
+
+          // Compare with local to avoid losing locally created items that failed to upload
+          const localPotentials = getLocal<any[]>(STORAGE_KEYS.POTENTIAL_CUSTOMERS, []);
+          const dbIds = new Set(dbPotentials.map(p => p.id));
+          
+          // Only keep local items that are very recently created (within last 1 hour) AND were never synced to avoid resurrecting deleted items
+          const oneHourAgo = Date.now() - 3600000;
+          const localOnly = localPotentials.filter(p => !dbIds.has(p.id) && !deletedIds.includes(p.id) && !p._isSynced && new Date(p.createdAt).getTime() > oneHourAgo);
+          
+          if (localOnly.length > 0) {
+             upsertToSupabase('vnpt_potential_customers', 'potential_customers', localOnly.map(p => { const { _isSynced, ...rest } = p; return rest; })).catch(console.error);
+          }
+          
+          // Merge
+          const merged = [...dbPotentials.map(p => ({ ...p, _isSynced: true }))];
+          for (const p of localOnly) {
+             merged.push(p);
+          }
+          
+          setLocal(STORAGE_KEYS.POTENTIAL_CUSTOMERS, merged);
+          lastPotentialsSync = Date.now();
+          this.notify();
+        }
+      }).catch(err => console.error("Potential customers sync fail:", err))
+        .finally(() => this._syncing.potentials = false);
+    }
+    return potentials;
+  },
+
+  async addPotentialCustomer(customer: Omit<PotentialCustomer, 'id' | 'createdAt'>) {
+    const current = await this.getPotentialCustomers();
+    const newCustomer = { 
+      ...customer, 
+      id: 'pot_' + Math.random().toString(36).substr(2, 9),
+      createdAt: new Date().toISOString()
+    };
+    setLocal(STORAGE_KEYS.POTENTIAL_CUSTOMERS, [...current, newCustomer]);
+
+    await upsertToSupabase('vnpt_potential_customers', 'potential_customers', [newCustomer]);
+
+    this.notify();
+    return newCustomer;
+  },
+
+  async updatePotentialCustomer(id: string, updates: Partial<PotentialCustomer>) {
+    const current = await this.getPotentialCustomers();
+    let target: PotentialCustomer | null = null;
+    const updated = current.map(c => {
+      if (c.id === id) {
+        target = { ...c, ...updates };
+        return target;
+      }
+      return c;
+    });
+    setLocal(STORAGE_KEYS.POTENTIAL_CUSTOMERS, updated);
+
+    if (target) {
+      await upsertToSupabase('vnpt_potential_customers', 'potential_customers', [target]);
+    }
+
+    this.notify();
+  },
+
+  async deletePotentialCustomer(id: string) {
+    const current = await this.getPotentialCustomers();
+    setLocal(STORAGE_KEYS.POTENTIAL_CUSTOMERS, current.filter(c => c.id !== id));
+    
+    const deletedIds = getLocal<string[]>(STORAGE_KEYS.DELETED_POTENTIALS, []);
+    if (!deletedIds.includes(id)) {
+      setLocal(STORAGE_KEYS.DELETED_POTENTIALS, [...deletedIds, id]);
+    }
+    
+    await deleteFromSupabase('vnpt_potential_customers', 'potential_customers', 'id', [id]);
+    this.notify();
+  },
+
+  notify() {
+    Array.from(listeners).forEach(l => {
+      try {
+        l(true);
+      } catch (e) {
+        console.error("Listener error:", e);
+      }
+    });
+  },
+
+  subscribe(callback: () => void) {
+    listeners.add(callback);
+    const interval = setInterval(() => {
+      this.getCustomers();
+      this.getBatches();
+      this.getAssignments();
+    }, 3000);
+    return () => {
+      listeners.delete(callback);
+      clearInterval(interval);
+    };
+  },
+
+  // Realtime Listeners
+  subscribeToAssignments(callback: (assignments: Assignment[]) => void, campaignId?: string) {
+    const handler = () => {
+      this.getAssignments(campaignId).then(callback);
+    };
+    
+    listeners.add(handler);
+    handler(); // Initial call
+    
+    const interval = setInterval(handler, 3000);
+    
+    return () => {
+      listeners.delete(handler);
+      clearInterval(interval);
+    };
+  }
+};
