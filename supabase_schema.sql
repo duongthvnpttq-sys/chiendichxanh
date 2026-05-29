@@ -147,19 +147,19 @@ CREATE INDEX IF NOT EXISTS idx_vnpt_potentials_staffId ON public.vnpt_potential_
 -- Thông qua block thực thi động và kiểm tra tồn tại (bảo mật và tránh lỗi duplicate/UUID)
 DO $$
 DECLARE
-    v_user_id TEXT;
+    v_user_id UUID;
 BEGIN
     -- Tìm xem tài khoản đã tồn tại chưa (lấy ID hiện tại nếu đã có trên Supabase để tránh lỗi Unique)
-    SELECT id::text INTO v_user_id FROM public.vnpt_hr_users WHERE username = 'duongth.tqg' LIMIT 1;
+    SELECT id::uuid INTO v_user_id FROM public.vnpt_hr_users WHERE username = 'duongth.tqg' LIMIT 1;
     
     IF v_user_id IS NULL THEN
         -- Nếu chưa có, tiến hành tạo mới với ID tự sinh
-        v_user_id := gen_random_uuid()::text; 
+        v_user_id := gen_random_uuid(); 
         
         -- Dùng EXECUTE linh hoạt để bỏ qua lỗi type UUID/TEXT của hệ thống cũ
         EXECUTE 'INSERT INTO public.vnpt_hr_users (id, code, name, username, role, unit, status, phone, email, "lastLogin", progress)
         VALUES (
-            $1::uuid, 
+            $1, 
             ''ADMIN01'', 
             ''Quản trị Hệ thống'', 
             ''duongth.tqg'', 
@@ -177,7 +177,7 @@ BEGIN
     -- Cập nhật mật khẩu cho ID (Dùng cast để tự tương thích TEXT hoặc UUID)
     EXECUTE 'INSERT INTO public.vnpt_passwords (user_id, password_hash)
     VALUES (
-        $1::uuid,
+        $1,
         ''f5e7360410bee0181ab94f44ad49760470666acd0c61a5f2c3f23b3b55a735b2''
     ) ON CONFLICT (user_id) DO UPDATE SET password_hash = EXCLUDED.password_hash;' USING v_user_id;
 END $$;
