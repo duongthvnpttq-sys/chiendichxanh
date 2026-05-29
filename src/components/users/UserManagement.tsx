@@ -141,25 +141,6 @@ export default function UserManagement() {
   const [isReminderOpen, setIsReminderOpen] = React.useState(false);
   const [reminderMessage, setReminderMessage] = React.useState('');
   
-  const [notifyLoginConfig, setNotifyLoginConfig] = React.useState(() => {
-    const saved = localStorage.getItem('vnpt_notify_login_config');
-    if (saved) return JSON.parse(saved);
-    return {
-      loginNewDevice: true,
-      loginFailed: true,
-      inactiveWarning: true,
-      inactiveDays: 3,
-      dailyReport: false,
-      managerAlerts: true
-    };
-  });
-
-  const handleSaveAuthConfig = () => {
-    localStorage.setItem('vnpt_notify_login_config', JSON.stringify(notifyLoginConfig));
-    toast.success("Đã cập nhật cấu hình thông báo tài khoản!");
-    addAuditLog('Cập nhật cấu hình thông báo', 'Cấu hình đăng nhập & không đăng nhập');
-  };
-  
   // New User Form State
   const [newUser, setNewUser] = React.useState({
     code: '',
@@ -922,7 +903,6 @@ export default function UserManagement() {
           <TabsTrigger value="list" className="rounded-xl font-bold px-6 py-2 data-[state=active]:bg-white data-[state=active]:text-[#005BAA] data-[state=active]:shadow-sm">Danh sách nhân sự ({filteredUsers.length})</TabsTrigger>
           <TabsTrigger value="roles" className="rounded-xl font-bold px-6 py-2 data-[state=active]:bg-white data-[state=active]:text-[#005BAA] data-[state=active]:shadow-sm">Phân quyền & Vai trò</TabsTrigger>
           <TabsTrigger value="territory" className="rounded-xl font-bold px-6 py-2 data-[state=active]:bg-white data-[state=active]:text-[#005BAA] data-[state=active]:shadow-sm">Địa bàn quản lý ({territories.length})</TabsTrigger>
-          <TabsTrigger value="notifications" className="rounded-xl font-bold px-6 py-2 data-[state=active]:bg-white data-[state=active]:text-[#005BAA] data-[state=active]:shadow-sm">Cấu hình thông báo</TabsTrigger>
         </TabsList>
 
         <TabsContent value="list" className="space-y-4 m-0 flex-1 flex flex-col min-h-0">
@@ -1500,122 +1480,6 @@ export default function UserManagement() {
 </CardContent>
            </Card>
         </TabsContent>
-
-         <TabsContent value="notifications" className="space-y-4 m-0 flex-1 flex flex-col min-h-0">
-           <Card className="border-slate-200 shadow-sm overflow-hidden text-left max-w-4xl">
-             <CardHeader className="bg-slate-50/50 pb-4 border-b border-slate-100">
-                <div className="flex items-center gap-3">
-                   <div className="p-2 bg-blue-100/50 rounded-xl">
-                      <Bell className="w-6 h-6 text-[#005BAA]" />
-                   </div>
-                   <div>
-                     <CardTitle className="text-sm font-black text-slate-800 uppercase tracking-widest">
-                       Thiết lập thông báo bảo mật & Hoạt động
-                     </CardTitle>
-                     <p className="text-xs text-slate-500 font-medium mt-1">
-                       Quản lý cảnh báo khi đăng nhập trên thiết bị lạ hoặc không đăng nhập quá thời gian quy định.
-                     </p>
-                   </div>
-                </div>
-             </CardHeader>
-             <CardContent className="p-6 space-y-8 bg-white overflow-y-auto">
-                <div className="space-y-4">
-                   <h3 className="text-xs font-black text-slate-400 tracking-wider uppercase flex items-center gap-2">
-                     <Shield className="w-4 h-4 text-slate-300" />
-                     Sự kiện đăng nhập Account
-                   </h3>
-                   
-                   <div className="flex items-center justify-between border border-slate-100 bg-slate-50/50 p-4 rounded-xl">
-                      <div className="space-y-1">
-                        <p className="text-[13px] font-bold text-slate-800">Cảnh báo đăng nhập thiết bị lạ / IP mới</p>
-                        <p className="text-[11px] text-slate-500">Gửi OTP hoặc Email nếu ID người dùng đăng nhập từ nơi khác.</p>
-                      </div>
-                      <button 
-                        onClick={() => setNotifyLoginConfig({...notifyLoginConfig, loginNewDevice: !notifyLoginConfig.loginNewDevice})}
-                        className={cn("relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors focus:outline-none focus:ring-1 focus:ring-blue-600 focus:ring-offset-1 border-none", notifyLoginConfig.loginNewDevice ? "bg-[#005BAA]" : "bg-slate-300")}
-                      >
-                         <span className={cn("pointer-events-none block h-4 w-4 rounded-full bg-white shadow-sm transition-transform", notifyLoginConfig.loginNewDevice ? "translate-x-4.5" : "translate-x-0.5")} />
-                      </button>
-                   </div>
-
-                   <div className="flex items-center justify-between border border-slate-100 bg-slate-50/50 p-4 rounded-xl">
-                      <div className="space-y-1">
-                        <p className="text-[13px] font-bold text-slate-800">Báo cáo đăng nhập thất bại liên tiếp</p>
-                        <p className="text-[11px] text-slate-500">Gửi cảnh báo đến Admin khi một tài khoản nhập sai mk quá 5 lần.</p>
-                      </div>
-                      <button 
-                        onClick={() => setNotifyLoginConfig({...notifyLoginConfig, loginFailed: !notifyLoginConfig.loginFailed})}
-                        className={cn("relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors focus:outline-none focus:ring-1 focus:ring-blue-600 focus:ring-offset-1 border-none", notifyLoginConfig.loginFailed ? "bg-[#005BAA]" : "bg-slate-300")}
-                      >
-                         <span className={cn("pointer-events-none block h-4 w-4 rounded-full bg-white shadow-sm transition-transform", notifyLoginConfig.loginFailed ? "translate-x-4.5" : "translate-x-0.5")} />
-                      </button>
-                   </div>
-                </div>
-
-                <div className="space-y-4 pt-4 border-t border-slate-100">
-                   <h3 className="text-xs font-black text-slate-400 tracking-wider uppercase flex items-center gap-2">
-                     <Clock className="w-4 h-4 text-slate-300" />
-                     Giám sát Không hoạt động (Inactivity)
-                   </h3>
-
-                   <div className="border border-slate-100 bg-slate-50/50 p-4 rounded-xl space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-1">
-                          <p className="text-[13px] font-bold text-slate-800">Nhắc nhở nhân sự không đăng nhập</p>
-                          <p className="text-[11px] text-slate-500">Hệ thống sẽ gửi thông báo Mobile App cho người dùng chưa đăng nhập hệ thống quá hạn định.</p>
-                        </div>
-                        <button 
-                          onClick={() => setNotifyLoginConfig({...notifyLoginConfig, inactiveWarning: !notifyLoginConfig.inactiveWarning})}
-                          className={cn("relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors focus:outline-none focus:ring-1 focus:ring-blue-600 focus:ring-offset-1 border-none", notifyLoginConfig.inactiveWarning ? "bg-[#005BAA]" : "bg-slate-300")}
-                        >
-                           <span className={cn("pointer-events-none block h-4 w-4 rounded-full bg-white shadow-sm transition-transform", notifyLoginConfig.inactiveWarning ? "translate-x-4.5" : "translate-x-0.5")} />
-                        </button>
-                      </div>
-                      
-                      {notifyLoginConfig.inactiveWarning && (
-                      <div className="flex items-center gap-3 pt-3 border-t border-slate-200">
-                         <span className="text-[12px] font-bold text-slate-700">Ngưỡng cảnh báo:</span>
-                         <Select 
-                           value={notifyLoginConfig.inactiveDays.toString()} 
-                           onValueChange={(val) => setNotifyLoginConfig({...notifyLoginConfig, inactiveDays: parseInt(val)})}
-                         >
-                            <SelectTrigger className="w-40 border-slate-200 rounded-xl bg-white font-bold h-8 text-xs">
-                               <SelectValue placeholder="Chọn số ngày..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                               <SelectItem value="1">Quá 1 ngày (24h)</SelectItem>
-                               <SelectItem value="2">Quá 2 ngày</SelectItem>
-                               <SelectItem value="3">Quá 3 ngày</SelectItem>
-                               <SelectItem value="7">Quá 1 tuần</SelectItem>
-                            </SelectContent>
-                         </Select>
-                      </div>
-                      )}
-                   </div>
-
-                   <div className="flex items-center justify-between border border-slate-100 bg-slate-50/50 p-4 rounded-xl">
-                      <div className="space-y-1">
-                        <p className="text-[13px] font-bold text-slate-800">Báo cáo tổng hợp tình trạng online hàng ngày cho Giám đốc</p>
-                        <p className="text-[11px] text-slate-500">Tự động push thông báo tới role Quản lý về tỷ lệ đăng nhập sử dụng trên địa bàn.</p>
-                      </div>
-                      <button 
-                        onClick={() => setNotifyLoginConfig({...notifyLoginConfig, dailyReport: !notifyLoginConfig.dailyReport})}
-                        className={cn("relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors focus:outline-none focus:ring-1 focus:ring-blue-600 focus:ring-offset-1 border-none", notifyLoginConfig.dailyReport ? "bg-[#005BAA]" : "bg-slate-300")}
-                      >
-                         <span className={cn("pointer-events-none block h-4 w-4 rounded-full bg-white shadow-sm transition-transform", notifyLoginConfig.dailyReport ? "translate-x-4.5" : "translate-x-0.5")} />
-                      </button>
-                   </div>
-                </div>
-
-                <div className="flex justify-end pt-4">
-                  <Button onClick={handleSaveAuthConfig} className="bg-[#005BAA] hover:bg-blue-700 rounded-xl px-8 font-bold text-xs uppercase tracking-widest shadow-lg shadow-blue-100">
-                     <CheckCircle2 className="w-4 h-4 mr-2" />
-                     Lưu Thay Đổi
-                  </Button>
-                </div>
-             </CardContent>
-           </Card>
-         </TabsContent>
       </Tabs>
     </div>
   );
