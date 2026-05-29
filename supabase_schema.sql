@@ -174,10 +174,10 @@ BEGIN
     END IF;
 
     -- Chú ý: Mã băm SHA-256 của chuỗi "Vnpt@123" là "f5e7360410bee0181ab94f44ad49760470666acd0c61a5f2c3f23b3b55a735b2"
-    -- Cập nhật mật khẩu cho ID (Dùng cast để tự tương thích TEXT hoặc UUID)
-    EXECUTE 'INSERT INTO public.vnpt_passwords (user_id, password_hash)
-    VALUES (
-        $1,
-        ''f5e7360410bee0181ab94f44ad49760470666acd0c61a5f2c3f23b3b55a735b2''
-    ) ON CONFLICT (user_id) DO UPDATE SET password_hash = EXCLUDED.password_hash;' USING v_user_id;
+    -- Cập nhật mật khẩu cho ID (Tránh dùng ON CONFLICT để loại trừ lỗi thiếu Primary Key trên bảng)
+    EXECUTE 'UPDATE public.vnpt_passwords SET password_hash = ''f5e7360410bee0181ab94f44ad49760470666acd0c61a5f2c3f23b3b55a735b2'' WHERE user_id = $1;' USING v_user_id;
+    
+    EXECUTE 'INSERT INTO public.vnpt_passwords (user_id, password_hash) 
+             SELECT $1, ''f5e7360410bee0181ab94f44ad49760470666acd0c61a5f2c3f23b3b55a735b2'' 
+             WHERE NOT EXISTS (SELECT 1 FROM public.vnpt_passwords WHERE user_id = $1);' USING v_user_id;
 END $$;
