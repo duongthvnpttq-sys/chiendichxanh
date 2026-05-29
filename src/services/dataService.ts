@@ -185,12 +185,23 @@ export async function fetchFromSupabase<T>(table1: string, table2: string, defau
 
 export async function upsertToSupabase(table1: string, table2: string, records: any[]) {
   if (!records || records.length === 0) return { success: true, error: null };
+  // Sanitize undefined values
+  const sanitizedRecords = records.map(record => {
+    const cleanRecord: any = {};
+    Object.keys(record).forEach(key => {
+      if (record[key] !== undefined) {
+        cleanRecord[key] = record[key];
+      }
+    });
+    return cleanRecord;
+  });
+  
   const CHUNK_SIZE = 500;
   try {
-    for (let i = 0; i < records.length; i += CHUNK_SIZE) {
-      const chunk = records.slice(i, i + CHUNK_SIZE);
+    for (let i = 0; i < sanitizedRecords.length; i += CHUNK_SIZE) {
+      const chunk = sanitizedRecords.slice(i, i + CHUNK_SIZE);
       const { error } = await supabase.from(table1).upsert(chunk);
-      if (error && error.code === '42P01') {
+      if (error && (error.code === '42P01' || error.message?.includes('relation') || error.message?.includes('does not exist'))) {
         const { error: error2 } = await supabase.from(table2).upsert(chunk);
         if (error2) {
           console.warn(`Supabase upsert failed on both ${table1} and ${table2}:`, error2.message);
