@@ -184,7 +184,7 @@ export async function fetchFromSupabase<T>(table1: string, table2: string, defau
 }
 
 export async function upsertToSupabase(table1: string, table2: string, records: any[]) {
-  if (!records || records.length === 0) return;
+  if (!records || records.length === 0) return { success: true, error: null };
   const CHUNK_SIZE = 500;
   try {
     for (let i = 0; i < records.length; i += CHUNK_SIZE) {
@@ -194,13 +194,17 @@ export async function upsertToSupabase(table1: string, table2: string, records: 
         const { error: error2 } = await supabase.from(table2).upsert(chunk);
         if (error2) {
           console.warn(`Supabase upsert failed on both ${table1} and ${table2}:`, error2.message);
+          return { success: false, error: error2 };
         }
       } else if (error) {
          console.warn(`Supabase upsert failed on ${table1}:`, error.message);
+         return { success: false, error };
       }
     }
+    return { success: true, error: null };
   } catch (err) {
     console.error(`Error upserting to Supabase for ${table1}:`, err);
+    return { success: false, error: err };
   }
 }
 
@@ -419,7 +423,10 @@ export const dataService = {
     setLocal(STORAGE_KEYS.ASSIGNMENTS, Array.from(assignmentMap.values()));
 
     if (upsertList.length > 0) {
-      upsertToSupabase('vnpt_assignments', 'assignments', upsertList).catch(console.error);
+      const dbRes = await upsertToSupabase('vnpt_assignments', 'assignments', upsertList);
+      if (!dbRes?.success && dbRes?.error) {
+        return { ...results, dbError: dbRes.error.message || dbRes.error.code || JSON.stringify(dbRes.error) };
+      }
     }
 
     this.notify();
@@ -439,10 +446,14 @@ export const dataService = {
     setLocal(STORAGE_KEYS.ASSIGNMENTS, updated);
 
     if (target) {
-      upsertToSupabase('vnpt_assignments', 'assignments', [target]).catch(console.error);
+      const dbRes = await upsertToSupabase('vnpt_assignments', 'assignments', [target]);
+      if (!dbRes?.success && dbRes?.error) {
+        return { success: false, error: dbRes.error };
+      }
     }
 
     this.notify();
+    return { success: true, error: null };
   },
 
   // Batches

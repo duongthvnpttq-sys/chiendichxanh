@@ -936,10 +936,14 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
       }
     });
 
-    if (result.updated > 0) {
-      toast.success(`Đã điều chỉnh phân giao ${result.updated} và giao mới ${result.success - result.updated} khách hàng!`);
+    if (result.dbError) {
+      toast.error(`Lỗi lưu lên Supabase: ${result.dbError}. Đã lưu cục bộ.`);
     } else {
-      toast.success(`Đã giao thành công ${result.success} khách hàng cho ${selectedStaffIds.length} nhân viên!`);
+      if (result.updated > 0) {
+        toast.success(`Đã điều chỉnh phân giao ${result.updated} và giao mới ${result.success - result.updated} khách hàng!`);
+      } else {
+        toast.success(`Đã giao thành công ${result.success} khách hàng cho ${selectedStaffIds.length} nhân viên!`);
+      }
     }
 
     setAssignDialogOpen(false);
@@ -1012,7 +1016,11 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
       }
     });
 
-    toast.success(`Đã giao thành công ${result.success} khách hàng theo địa bàn!`);
+    if (result.dbError) {
+      toast.error(`Lỗi đồng bộ Supabase: ${result.dbError}. Đã lưu cục bộ.`);
+    } else {
+      toast.success(`Đã giao thành công ${result.success} khách hàng theo địa bàn!`);
+    }
     setAssignByTerritoryDialogOpen(false);
   };
 
