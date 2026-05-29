@@ -8,9 +8,9 @@ const SYNC_INTERVAL = 2000; // 2 seconds for near real-time experiences
 
 import { createClient } from "@supabase/supabase-js";
 
-const rawUrl = "https://sgtuwnepwhucemvtugeu.supabase.co/rest/v1/";
+const rawUrl = "https://zlhygscjdtkjybzuiijc.supabase.co/rest/v1/";
 const SUPABASE_URL = rawUrl.replace(/\/rest\/v1\/?$/, ""); 
-const SUPABASE_KEY = "sb_publishable__YRNMlCYXaRFDkV88iNezA_1NNlolkG";
+const SUPABASE_KEY = "sb_publishable_ta6hxUqkalqiuANk737nSg_MWfYGB6q";
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
