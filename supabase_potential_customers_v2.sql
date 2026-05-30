@@ -31,6 +31,7 @@ DROP POLICY IF EXISTS "Allow delete for authenticated users" ON public.vnpt_pote
 DROP POLICY IF EXISTS "Cho phép xem với người dùng đã đăng nhập" ON public.vnpt_potential_customers;
 DROP POLICY IF EXISTS "Cho phép thêm với người dùng đã đăng nhập" ON public.vnpt_potential_customers;
 DROP POLICY IF EXISTS "Cho phép sửa với người dùng đã đăng nhập" ON public.vnpt_potential_customers;
+DROP POLICY IF EXISTS "Cho phép cập nhật với người dùng đã đăng nhập" ON public.vnpt_potential_customers;
 DROP POLICY IF EXISTS "Cho phép xóa với người dùng đã đăng nhập" ON public.vnpt_potential_customers;
 
 -- Tạo policies
