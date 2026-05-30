@@ -47,12 +47,17 @@ export default function PotentialCustomers() {
     refreshData();
     const unsub = dataService.subscribe(refreshData);
 
+    const autoSyncInterval = setInterval(() => {
+      dataService.forceSyncPotentials().catch(console.error);
+    }, 10000); // 10 seconds auto-sync
+
     setUsers(userService.getUsers());
     const unsubUsers = userService.subscribe(() => setUsers(userService.getUsers()));
 
     return () => {
       unsub();
       unsubUsers();
+      clearInterval(autoSyncInterval);
     };
   }, []);
 
@@ -335,22 +340,6 @@ export default function PotentialCustomers() {
           >
             <Download className="w-4 h-4 mr-2" />
             Xuất Excel
-          </Button>
-          <Button 
-            onClick={async () => {
-              toast.info("Đang đồng bộ dữ liệu...");
-              try {
-                await dataService.forceSyncPotentials();
-                toast.success("Đồng bộ thành công!");
-              } catch (e: any) {
-                toast.error("Đồng bộ thất bại: " + (e.message || "Lỗi không xác định"));
-              }
-            }}
-            variant="outline"
-            className="w-full sm:w-auto text-emerald-700 border-emerald-200 hover:bg-emerald-50 rounded-xl font-bold uppercase text-[11px] h-10 px-4 transition-all"
-          >
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Đồng bộ
           </Button>
         </div>
       </div>
