@@ -344,7 +344,7 @@ export default function KPIOverview() {
          {/* Distribution / Status - 1 Col */}
          <Card className="rounded-xl shadow-sm border-slate-100 bg-white flex flex-col">
             <CardHeader className="pb-2 shrink-0 border-b border-slate-50 mb-2 px-4 pt-6">
-              <CardTitle className="text-sm font-black text-slate-800 uppercase tracking-wide">Trạng thái Phân giao</CardTitle>
+              <CardTitle className="text-sm font-black text-slate-800 uppercase tracking-wide">Trạng thái Giao nhiệm vụ</CardTitle>
               <CardDescription className="text-xs font-bold text-slate-400 mt-1.5">Tỷ trọng tiến độ xử lý công việc</CardDescription>
             </CardHeader>
             <CardContent className="flex-1 flex flex-col items-center justify-center px-4 pb-6 relative">

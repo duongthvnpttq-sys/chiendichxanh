@@ -249,6 +249,15 @@ export default function UserAssignments({ mode = 'ASSIGN', onNavigate }: UserAss
       let reportName = 'Bao_cao_tong_hop';
       let titleName = 'TẤT CẢ CHƯƠNG TRÌNH / ĐỢT TRIỂN KHAI';
 
+      const assignMap = new Map<string, any>();
+      allAssignments.forEach(assign => {
+        assignMap.set(`${assign.customerId}_${assign.campaignId}`, assign);
+        // Fallback if we just search by customerId
+        if (!assignMap.has(assign.customerId)) {
+           assignMap.set(assign.customerId, assign);
+        }
+      });
+
       // Áp dụng bộ lọc
       if (exportSelectedOnly && selectedCustomers.length > 0) {
         filteredCustomers = filteredCustomers.filter(c => selectedCustomers.includes(c.id));
@@ -266,15 +275,6 @@ export default function UserAssignments({ mode = 'ASSIGN', onNavigate }: UserAss
           reportName = "Bao_cao_theo_chuong_trinh";
           titleName = "BÁO CÁO THEO CHƯƠNG TRÌNH";
         }
-        
-        const assignMap = new Map<string, any>();
-        allAssignments.forEach(assign => {
-          assignMap.set(`${assign.customerId}_${assign.campaignId}`, assign);
-          // Fallback if we just search by customerId
-          if (!assignMap.has(assign.customerId)) {
-             assignMap.set(assign.customerId, assign);
-          }
-        });
 
         if (exportRegions.length > 0) {
           filteredCustomers = filteredCustomers.filter(c => c.region && exportRegions.includes(c.region));
@@ -502,6 +502,14 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
       let reportName = 'Bao_cao_tong_hop';
       let titleName = 'TẤT CẢ CHƯƠNG TRÌNH / ĐỢT TRIỂN KHAI';
 
+      const assignMap = new Map<string, any>();
+      allAssignments.forEach(assign => {
+        assignMap.set(`${assign.customerId}_${assign.campaignId}`, assign);
+        if (!assignMap.has(assign.customerId)) {
+           assignMap.set(assign.customerId, assign);
+        }
+      });
+
       // Áp dụng bộ lọc
       if (exportSelectedOnly && selectedCustomers.length > 0) {
         filteredCustomers = filteredCustomers.filter(c => selectedCustomers.includes(c.id));
@@ -519,14 +527,6 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
           reportName = "Bao_cao_theo_chuong_trinh";
           titleName = "BÁO CÁO THEO CHƯƠNG TRÌNH";
         }
-        
-        const assignMap = new Map<string, any>();
-        allAssignments.forEach(assign => {
-          assignMap.set(`${assign.customerId}_${assign.campaignId}`, assign);
-          if (!assignMap.has(assign.customerId)) {
-             assignMap.set(assign.customerId, assign);
-          }
-        });
 
         if (exportRegions.length > 0) {
           filteredCustomers = filteredCustomers.filter(c => c.region && exportRegions.includes(c.region));
@@ -1001,11 +1001,11 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
       }
     });
 
-    if (result.dbError) {
-      toast.error(`Lỗi lưu lên Supabase: ${result.dbError}. Đã lưu cục bộ.`);
+    if ((result as any).dbError) {
+      toast.error(`Lỗi lưu lên Supabase: ${(result as any).dbError}. Đã lưu cục bộ.`);
     } else {
       if (result.updated > 0) {
-        toast.success(`Đã điều chỉnh phân giao ${result.updated} và giao mới ${result.success - result.updated} khách hàng!`);
+        toast.success(`Đã điều chỉnh giao nhiệm vụ ${result.updated} và giao mới ${result.success - result.updated} khách hàng!`);
       } else {
         toast.success(`Đã giao thành công ${result.success} khách hàng cho ${selectedStaffIds.length} nhân viên!`);
       }
@@ -1050,7 +1050,7 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
           deadline: defDeadline.toISOString().split('T')[0],
           priority: 'MEDIUM',
           taskType: 'Tư vấn nâng gói Cáp quang',
-          managerNotes: 'Phân giao tự động theo ô địa bàn quản lý.',
+          managerNotes: 'Giao nhiệm vụ tự động theo ô địa bàn quản lý.',
           assignedBy: authService.getCurrentUser()?.uid
         });
       }
@@ -1073,7 +1073,7 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
       if (staffMember) {
         notificationService.addNotification({
           userId: staffId,
-          title: 'Nhiệm vụ phân giao theo ô địa bàn',
+          title: 'Giao nhiệm vụ theo ô địa bàn',
           message: `Bạn được giao mới ${count} khách hàng tự động theo vùng.`,
           type: 'TASK',
           actionUrl: 'tasks'
@@ -1081,8 +1081,8 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
       }
     });
 
-    if (result.dbError) {
-      toast.error(`Lỗi đồng bộ Supabase: ${result.dbError}. Đã lưu cục bộ.`);
+    if ((result as any).dbError) {
+      toast.error(`Lỗi đồng bộ Supabase: ${(result as any).dbError}. Đã lưu cục bộ.`);
     } else {
       toast.success(`Đã giao thành công ${result.success} khách hàng theo địa bàn!`);
     }
@@ -1767,7 +1767,7 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
 
                       <Button onClick={handleOpenAssignByTerritory} variant="outline" className="gap-2 border-slate-200 bg-white hover:bg-emerald-50 h-10 text-xs font-black text-emerald-600 rounded-xl">
                         <MapIcon className="w-4 h-4" />
-                        Phân giao theo Ô
+                        Giao nhiệm vụ theo Ô
                       </Button>
 
                       <Button variant="outline" className="gap-2 border-slate-200 bg-white hover:bg-blue-50 h-10 text-xs font-bold text-slate-600 rounded-xl">
@@ -1948,7 +1948,7 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
                                   variant="ghost" 
                                   size="icon" 
                                   className="w-8 h-8 rounded-lg hover:bg-blue-50 text-slate-400 hover:text-[#005ba1]"
-                                  title={customer.assignedTo ? "Điều chỉnh phân giao" : "Giao việc cho NV"}
+                                  title={customer.assignedTo ? "Điều chỉnh giao nhiệm vụ" : "Giao việc cho NV"}
                                 >
                                   <UserPlus className="w-3.5 h-3.5" />
                                 </Button>
@@ -2315,7 +2315,7 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
                   <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Ghi chú & Chỉ đạo của Quản lý</label>
                   <textarea
                     className="flex min-h-[70px] w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs font-medium placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#005BAA] focus-visible:bg-white transition-colors"
-                    placeholder="Chỉ đạo, ghi chú của quản lý khi phân giao khách hàng này cho nhân viên triển khai..."
+                    placeholder="Chỉ đạo, ghi chú của quản lý khi giao nhiệm vụ này cho nhân viên triển khai..."
                     value={assignmentNotes}
                     onChange={(e) => setAssignmentNotes(e.target.value)}
                   />
@@ -2450,7 +2450,7 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
                 Chi tiết khách hàng
               </DialogTitle>
               <DialogDescription className="text-white/70 text-[10px] font-black uppercase tracking-widest mt-1">
-                Thông tin đính kèm để phân giao
+                Thông tin đính kèm để giao nhiệm vụ
               </DialogDescription>
             </DialogHeader>
           </div>
@@ -2560,7 +2560,7 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
             )}
 
             <div className="space-y-1">
-              <p className="text-[10px] font-black uppercase text-slate-400 tracking-tight">Trạng thái phân giao</p>
+              <p className="text-[10px] font-black uppercase text-slate-400 tracking-tight">Trạng thái giao nhiệm vụ</p>
               <div className="flex items-center justify-between mt-2 py-3 px-4 bg-slate-50 rounded-2xl border border-slate-100">
                 <div className="flex items-center gap-3">
                   <div className={cn("w-2 h-2 rounded-full", historyTask?.assignedTo ? "bg-emerald-500" : "bg-slate-300")} />
@@ -2895,7 +2895,7 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
         <DialogContent className="sm:max-w-[600px] rounded-3xl p-0 overflow-hidden border-none shadow-2xl">
           <div className="bg-emerald-600 p-6 text-white font-bold">
             <DialogHeader>
-              <DialogTitle className="text-xl font-black uppercase tracking-tight text-white">Phân giao theo Ô địa bàn</DialogTitle>
+              <DialogTitle className="text-xl font-black uppercase tracking-tight text-white">Giao nhiệm vụ theo Ô địa bàn</DialogTitle>
               <DialogDescription className="text-white/70 text-[10px] font-black uppercase tracking-widest mt-1">
                 Gán nhân sự phụ trách cho từng Ô địa bàn trong danh sách đang hiển thị
               </DialogDescription>
@@ -2906,7 +2906,7 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
             <div className="space-y-4">
               <div className="flex flex-col md:flex-row gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-100 mb-6 items-end">
                 <div className="flex-1 space-y-1.5 w-full">
-                  <label className="text-[10px] uppercase font-black text-slate-500 tracking-wider">Phân giao hàng loạt ({selectedTerritoriesForAssign.length} ô đang chọn)</label>
+                  <label className="text-[10px] uppercase font-black text-slate-500 tracking-wider">Giao nhiệm vụ hàng loạt ({selectedTerritoriesForAssign.length} ô đang chọn)</label>
                   <Select value={batchAssignStaffId} onValueChange={setBatchAssignStaffId}>
                     <SelectTrigger className="bg-white border-slate-200 h-10 rounded-xl font-bold text-xs">
                       <SelectValue placeholder="Chọn nhân sự thụ lý chung..." />
@@ -3017,7 +3017,7 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
                 onClick={handleAssignByTerritorySubmit} 
                 className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-black h-11 rounded-2xl uppercase text-[11px] shadow-lg shadow-emerald-100"
               >
-                Xác nhận phân giao
+                Xác nhận giao nhiệm vụ
               </Button>
             </div>
           </div>
