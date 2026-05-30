@@ -105,9 +105,11 @@ export interface PotentialCustomer {
 const INITIAL_POTENTIAL_CUSTOMERS: PotentialCustomer[] = [];
 
 let memoryCache: Record<string, any> = {};
+const pendingWrites: Record<string, NodeJS.Timeout> = {};
 
 const getLocal = <T>(key: string, def: T): T => {
   if (memoryCache[key]) return memoryCache[key];
+  if (typeof localStorage === 'undefined') return def;
   try {
     const data = localStorage.getItem(key);
     const parsed = data ? JSON.parse(data) : def;
@@ -121,27 +123,29 @@ const getLocal = <T>(key: string, def: T): T => {
 
 const setLocal = (key: string, data: any) => {
   memoryCache[key] = data;
-  try {
-    localStorage.setItem(key, JSON.stringify(data));
-  } catch (e: any) {
-    if (e.name === "QuotaExceededError" || e.name === "NS_ERROR_DOM_QUOTA_REACHED") {
-      console.warn("LocalStorage quota exceeded. Attempting to prune data...");
-      if (key === STORAGE_KEYS.ASSIGNMENTS && Array.isArray(data)) {
-        const pruned = data.slice(-500);
-        memoryCache[key] = pruned;
-        try {
-          localStorage.setItem(key, JSON.stringify(pruned));
-          console.log("Pruned assignments to 500 items.");
-          return;
-        } catch (innerE) {
-          console.error("Failed even after pruning assignments:", innerE);
+  if (typeof localStorage === 'undefined') return;
+  
+  if (pendingWrites[key]) clearTimeout(pendingWrites[key]);
+  pendingWrites[key] = setTimeout(() => {
+    try {
+      localStorage.setItem(key, JSON.stringify(data));
+    } catch (e: any) {
+      if (e.name === "QuotaExceededError" || e.name === "NS_ERROR_DOM_QUOTA_REACHED") {
+        console.warn("LocalStorage quota exceeded. Attempting to prune data...");
+        if (key === STORAGE_KEYS.ASSIGNMENTS && Array.isArray(data)) {
+          const pruned = data.slice(-500);
+          memoryCache[key] = pruned;
+          try {
+            localStorage.setItem(key, JSON.stringify(pruned));
+          } catch (innerE) {
+            console.error("Failed even after pruning assignments:", innerE);
+          }
         }
+      } else {
+        console.error("LocalStorage write failed:", e);
       }
-      console.error("LocalStorage write failed:", e);
-    } else {
-      console.error("LocalStorage write failed:", e);
     }
-  }
+  }, 100);
 };
 
 
@@ -339,12 +343,13 @@ export const dataService = {
 
   async deleteCustomersBulk(ids: string[]) {
     const current = await this.getCustomers();
-    const updated = current.filter(c => !ids.includes(c.id));
+    const idSet = new Set(ids);
+    const updated = current.filter(c => !idSet.has(c.id));
     setLocal(STORAGE_KEYS.CUSTOMERS, updated);
     
     // Also cleanup assignments
     const currentAssignments = await this.getAssignments();
-    const updatedAssignments = currentAssignments.filter(a => !ids.includes(a.customerId));
+    const updatedAssignments = currentAssignments.filter(a => !idSet.has(a.customerId));
     setLocal(STORAGE_KEYS.ASSIGNMENTS, updatedAssignments);
 
     await deleteFromSupabase('vnpt_customers', 'customers', 'id', ids);

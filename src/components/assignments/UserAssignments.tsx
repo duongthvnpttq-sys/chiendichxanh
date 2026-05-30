@@ -246,6 +246,15 @@ export default function UserAssignments({ mode = 'ASSIGN', onNavigate }: UserAss
           titleName = "BÁO CÁO THEO CHƯƠNG TRÌNH";
         }
         
+        const assignMap = new Map<string, any>();
+        allAssignments.forEach(assign => {
+          assignMap.set(`${assign.customerId}_${assign.campaignId}`, assign);
+          // Fallback if we just search by customerId
+          if (!assignMap.has(assign.customerId)) {
+             assignMap.set(assign.customerId, assign);
+          }
+        });
+
         if (exportRegions.length > 0) {
           filteredCustomers = filteredCustomers.filter(c => c.region && exportRegions.includes(c.region));
         }
@@ -254,13 +263,13 @@ export default function UserAssignments({ mode = 'ASSIGN', onNavigate }: UserAss
         }
         if (exportStaffIds.length > 0) {
           filteredCustomers = filteredCustomers.filter(c => {
-            const a = allAssignments.find(assign => assign.customerId === c.id && assign.campaignId === c.campaignId) || allAssignments.find(assign => assign.customerId === c.id);
+            const a = assignMap.get(`${c.id}_${c.campaignId}`) || assignMap.get(c.id);
             return a && a.staffId && exportStaffIds.includes(a.staffId);
           });
         }
         if (exportTaskTypes.length > 0) {
           filteredCustomers = filteredCustomers.filter(c => {
-            const a = allAssignments.find(assign => assign.customerId === c.id && assign.campaignId === c.campaignId) || allAssignments.find(assign => assign.customerId === c.id);
+            const a = assignMap.get(`${c.id}_${c.campaignId}`) || assignMap.get(c.id);
             return a && a.status && exportTaskTypes.includes(a.status);
           });
         }
@@ -273,7 +282,7 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
 
       let tableRowsHtml = '';
       filteredCustomers.forEach((customer, index) => {
-        const a = allAssignments.find(assign => assign.customerId === customer.id && assign.campaignId === customer.campaignId) || allAssignments.find(assign => assign.customerId === customer.id);
+        const a = assignMap.get(`${customer.id}_${customer.campaignId}`) || assignMap.get(customer.id);
         
         const batch = batches.find(b => b.id === (a?.campaignId || customer.campaignId));
         const category = categories.find(c => c.id === (batch?.programId || customer.categoryId));
@@ -490,6 +499,14 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
           titleName = "BÁO CÁO THEO CHƯƠNG TRÌNH";
         }
         
+        const assignMap = new Map<string, any>();
+        allAssignments.forEach(assign => {
+          assignMap.set(`${assign.customerId}_${assign.campaignId}`, assign);
+          if (!assignMap.has(assign.customerId)) {
+             assignMap.set(assign.customerId, assign);
+          }
+        });
+
         if (exportRegions.length > 0) {
           filteredCustomers = filteredCustomers.filter(c => c.region && exportRegions.includes(c.region));
         }
@@ -498,13 +515,13 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
         }
         if (exportStaffIds.length > 0) {
           filteredCustomers = filteredCustomers.filter(c => {
-            const a = allAssignments.find(assign => assign.customerId === c.id && assign.campaignId === c.campaignId) || allAssignments.find(assign => assign.customerId === c.id);
+            const a = assignMap.get(`${c.id}_${c.campaignId}`) || assignMap.get(c.id);
             return a && a.staffId && exportStaffIds.includes(a.staffId);
           });
         }
         if (exportTaskTypes.length > 0) {
           filteredCustomers = filteredCustomers.filter(c => {
-            const a = allAssignments.find(assign => assign.customerId === c.id && assign.campaignId === c.campaignId) || allAssignments.find(assign => assign.customerId === c.id);
+            const a = assignMap.get(`${c.id}_${c.campaignId}`) || assignMap.get(c.id);
             return a && a.status && exportTaskTypes.includes(a.status);
           });
         }
@@ -516,7 +533,7 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
       }
 
       const reportData = filteredCustomers.map((customer, index) => {
-        const a = allAssignments.find(assign => assign.customerId === customer.id && assign.campaignId === customer.campaignId) || allAssignments.find(assign => assign.customerId === customer.id);
+        const a = assignMap.get(`${customer.id}_${customer.campaignId}`) || assignMap.get(customer.id);
         const staffMember = a ? staff.find(s => s.id === a.staffId) : null;
         const batch = batches.find(b => b.id === (a?.campaignId || customer.campaignId));
         const category = categories.find(c => c.id === (batch?.programId || customer.categoryId));
@@ -688,13 +705,18 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
       staffMap.set(s.id, s);
     });
 
+    const batchMap = new Map<string, any>();
+    batches.forEach(b => {
+      batchMap.set(b.id, b);
+    });
+
     const filtered = [];
     for (let i = 0; i < customers.length; i++) {
         const c = customers[i];
+        const cb = c.campaignId ? batchMap.get(c.campaignId) : undefined;
         
         if (mode === 'ASSIGN') {
-          const batch = batches.find(b => b.id === c.campaignId);
-          if (batch && batch.status === 'COMPLETED') continue;
+          if (cb && cb.status === 'COMPLETED') continue;
         }
 
         const rev = (c.revenue || 0);
@@ -702,7 +724,7 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
         if (revenueRange === "MID" && (rev < 200000 || rev >= 500000)) continue;
         if (revenueRange === "LOW" && (rev === 0 || rev >= 200000)) continue;
         
-        const effectiveCategoryId = c.categoryId || (c.campaignId ? batches.find(b => b.id === c.campaignId)?.programId : undefined);
+        const effectiveCategoryId = c.categoryId || (cb ? cb.programId : undefined);
         if (activeCategory !== "all" && effectiveCategoryId !== activeCategory) continue;
         if (activeBatch !== "all" && c.campaignId !== activeBatch) continue;
         if (territoryFilter.length > 0 && (!c.territory || !territoryFilter.includes(c.territory))) continue;
@@ -823,43 +845,62 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
               return;
             }
 
-            const findValue = (obj: any, keywords: string[]) => {
-              const keys = Object.keys(obj);
-              for (const k of keys) {
-                const normalizedK = k.toString().trim().toUpperCase().replace(/_/g, '').replace(/\s/g, '');
-                if (keywords.some(kw => normalizedK === kw.toUpperCase().replace(/_/g, '').replace(/\s/g, ''))) {
-                  return obj[k];
-                }
-              }
-              return undefined;
+            // --- OPTIMIZE: Map keys once rather than on every row ---
+            const firstRowKeys = Object.keys(jsonData[0]);
+            const normalizedKeys = firstRowKeys.map(k => ({
+              original: k,
+              normalized: k.toString().trim().toUpperCase().replace(/_/g, '').replace(/\s/g, '')
+            }));
+
+            const findHeaderKey = (keywords: string[]) => {
+              const matchedKey = normalizedKeys.find(nk => 
+                keywords.some(kw => nk.normalized === kw.toUpperCase().replace(/_/g, '').replace(/\s/g, ''))
+              );
+              return matchedKey ? matchedKey.original : null;
+            };
+
+            const keysMap = {
+              id: findHeaderKey(['MA_TB_FIBER', 'MA_TB', 'MA_KH', 'ID', 'CUSTOMER_ID', 'THUE_BAO', 'KHACH_HANG', 'MÃ', 'SỐ THUÊ BAO', 'ACCOUNT']),
+              services: findHeaderKey(['SERVICES', 'DICH_VU', 'DV', 'DỊCH VỤ', 'LOẠI HÌNH']),
+              name: findHeaderKey(['TEN_TB', 'TEN_KH', 'NAME', 'CUSTOMER_NAME', 'TÊN', 'HỌ TÊN', 'TEN_KHACH_HANG']),
+              categoryId: findHeaderKey(['CATEGORY', 'CH_DE', 'GROUP', 'CHỦ ĐỀ', 'DANH MỤC', 'PHÂN LOẠI']),
+              campaignId: findHeaderKey(['BATCH', 'DOT', 'CAMPAIGN', 'ĐỢT', 'ĐỢT TRIỂN KHAI']),
+              phone: findHeaderKey(['SO_DT', 'PHONE', 'SDT', 'SỐ ĐIỆN THOẠI', 'DI ĐỘNG', 'TELEPHONE']),
+              region: findHeaderKey(['REGION', 'KHU_VUC', 'DON_VI', 'KHU VỰC', 'ĐƠN VỊ', 'TÀI LIỆU']),
+              revenue: findHeaderKey(['DOANHTHU', 'REVENUE', 'DT', 'DOANH THU', 'CUOC_PS']),
+              subscriptionId: findHeaderKey(['MA_TB_FIBER', 'MA_TB', 'SUBSCRIPTION_ID', 'MÃ TB', 'MA_THUE_BAO']),
+              addressDetail: findHeaderKey(['DIACHI_LD', 'DIA_CHI', 'ADDRESS', 'ĐỊA CHỈ', 'DIACHI']),
+              territory: findHeaderKey(['Ô địa bàn', 'TERRITORY', 'DIA_BAN', 'Ô ĐỊA BÀN', 'QUẦY', 'O_DIA_BAN']),
+              salesManager: findHeaderKey(['NVKD Quản lý', 'NVKD_QL', 'SALES_MANAGER', 'NVKD', 'NVKD QUẢN LÝ']),
+              technicalManager: findHeaderKey(['NVKT Quản lý', 'NVKT_QL', 'TECHNICAL_MANAGER', 'NVKT', 'NVKT QUẢN LÝ'])
             };
 
             const formattedCustomers: Customer[] = jsonData.map(item => {
-              const rawId = findValue(item, ['MA_TB_FIBER', 'MA_TB', 'MA_KH', 'ID', 'CUSTOMER_ID', 'THUE_BAO', 'KHACH_HANG', 'MÃ', 'SỐ THUÊ BAO', 'ACCOUNT']);
+              const rawId = keysMap.id ? item[keysMap.id] : undefined;
               const customerId = (rawId && String(rawId).trim()) ? String(rawId).trim() : 'kh' + Math.random().toString(36).substr(2, 9);
               
-              const servicesStr = findValue(item, ['SERVICES', 'DICH_VU', 'DV', 'DỊCH VỤ', 'LOẠI HÌNH']) || '';
+              const servicesStr = keysMap.services ? item[keysMap.services] : '';
               
-              const rawName = findValue(item, ['TEN_TB', 'TEN_KH', 'NAME', 'CUSTOMER_NAME', 'TÊN', 'HỌ TÊN', 'TEN_KHACH_HANG']);
+              const rawName = keysMap.name ? item[keysMap.name] : undefined;
               const cleanName = (rawName && String(rawName).trim().toLowerCase() !== 'unknown') ? String(rawName).trim() : 'KH_' + customerId.slice(-4);
               
-              const importedCat = findValue(item, ['CATEGORY', 'CH_DE', 'GROUP', 'CHỦ ĐỀ', 'DANH MỤC', 'PHÂN LOẠI']);
-              const importedBatch = findValue(item, ['BATCH', 'DOT', 'CAMPAIGN', 'ĐỢT', 'ĐỢT TRIỂN KHAI']);
+              const importedCat = keysMap.categoryId ? item[keysMap.categoryId] : undefined;
+              const importedBatch = keysMap.campaignId ? item[keysMap.campaignId] : undefined;
 
               return {
                 id: String(customerId).trim(),
                 name: cleanName,
-                phone: String(findValue(item, ['SO_DT', 'PHONE', 'SDT', 'SỐ ĐIỆN THOẠI', 'DI ĐỘNG', 'TELEPHONE']) || '').replace(/Unknown/gi, ''),
-                region: String(findValue(item, ['REGION', 'KHU_VUC', 'DON_VI', 'KHU VỰC', 'ĐƠN VỊ', 'TÀI LIỆU']) || '').replace(/Unknown/gi, ''),
-                revenue: Number(findValue(item, ['DOANHTHU', 'REVENUE', 'DT', 'DOANH THU', 'CUOC_PS']) || 0),
+                phone: String((keysMap.phone ? item[keysMap.phone] : '') || '').replace(/Unknown/gi, ''),
+                region: String((keysMap.region ? item[keysMap.region] : '') || '').replace(/Unknown/gi, ''),
+                revenue: Number((keysMap.revenue ? item[keysMap.revenue] : 0) || 0),
                 categoryId: (importedCat || (activeCategory === 'all' ? undefined : activeCategory)),
                 campaignId: (importedBatch || (activeBatch === 'all' ? undefined : activeBatch)),
                 services: servicesStr ? String(servicesStr).split(',').map((s: string) => s.trim()) : [],
-                subscriptionId: String(findValue(item, ['MA_TB_FIBER', 'MA_TB', 'SUBSCRIPTION_ID', 'MÃ TB', 'MA_THUE_BAO']) || customerId).replace(/Unknown/gi, ''),
-                addressDetail: String(findValue(item, ['DIACHI_LD', 'DIA_CHI', 'ADDRESS', 'ĐỊA CHỈ', 'DIACHI']) || '').replace(/Unknown/gi, ''),
-                territory: String(findValue(item, ['Ô địa bàn', 'TERRITORY', 'DIA_BAN', 'Ô ĐỊA BÀN', 'QUẦY', 'O_DIA_BAN']) || '').replace(/Unknown/gi, ''),
-                salesManager: String(findValue(item, ['NVKD Quản lý', 'NVKD_QL', 'SALES_MANAGER', 'NVKD', 'NVKD QUẢN LÝ']) || '').replace(/Unknown/gi, ''),
-                technicalManager: String(findValue(item, ['NVKT Quản lý', 'NVKT_QL', 'TECHNICAL_MANAGER', 'NVKT', 'NVKT QUẢN LÝ']) || '').replace(/Unknown/gi, ''),
+                subscriptionId: String((keysMap.subscriptionId ? item[keysMap.subscriptionId] : undefined) || customerId).replace(/Unknown/gi, ''),
+                addressDetail: String((keysMap.addressDetail ? item[keysMap.addressDetail] : '') || '').replace(/Unknown/gi, ''),
+                territory: String((keysMap.territory ? item[keysMap.territory] : '') || '').replace(/Unknown/gi, ''),
+                salesManager: String((keysMap.salesManager ? item[keysMap.salesManager] : '') || '').replace(/Unknown/gi, ''),
+                technicalManager: String((keysMap.technicalManager ? item[keysMap.technicalManager] : '') || '').replace(/Unknown/gi, ''),
                 createdAt: new Date().toISOString(),
                 createdBy: authService.getCurrentUser()?.uid
               };
@@ -899,8 +940,11 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
       return;
     }
 
+    const customerMap = new Map<string, any>();
+    customers.forEach(c => customerMap.set(c.id, c));
+
     const newAssignments: Assignment[] = selectedCustomers.map((cid, index) => {
-      const customer = customers.find(c => c.id === cid);
+      const customer = customerMap.get(cid);
       const computedCampaignId = customer?.campaignId || (activeBatch !== 'all' ? activeBatch : (batches[0]?.id || ''));
       return {
         customerId: cid,
