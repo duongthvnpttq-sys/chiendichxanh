@@ -1395,33 +1395,6 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
                        </div>
                        <ChevronRight className={cn("w-4 h-4 shrink-0 transition-transform", activeCategory === cat.id ? "translate-x-1" : "opacity-0")} />
                      </button>
-                     
-                     <div className={cn(
-                       "absolute right-8 top-1/2 -translate-y-1/2 flex items-center gap-1 transition-all",
-                       (mode === 'LIST' && isManageMode) ? "opacity-100 translate-x-0" : "opacity-0 group-hover:opacity-100 -translate-x-2"
-                     )}>
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); handleEditCategory(cat); }}
-                          className="p-1.5 bg-white shadow-sm border border-slate-100 rounded-lg text-slate-400 hover:text-blue-500 hover:border-blue-100 transition-all"
-                          title="Sửa chương trình"
-                        >
-                          <History className="w-3.5 h-3.5" />
-                        </button>
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); handleDeleteAllInCategory(cat.id, cat.name); }}
-                          className="p-1.5 bg-white shadow-sm border border-slate-100 rounded-lg text-slate-400 hover:text-orange-500 hover:border-orange-100 transition-all"
-                          title="Xóa KH khi CT kết thúc"
-                        >
-                          <UserMinus className="w-3.5 h-3.5" />
-                        </button>
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); handleDeleteCategory(cat.id, cat.name); }}
-                          className="p-1.5 bg-white shadow-sm border border-slate-100 rounded-lg text-slate-400 hover:text-red-500 hover:border-red-100 transition-all"
-                          title="Xóa chương trình"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                     </div>
                    </div>
                  )})}
                </div>
