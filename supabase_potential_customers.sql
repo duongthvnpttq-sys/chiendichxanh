@@ -1,11 +1,12 @@
--- SQL Script to create the vnpt_potential_customers table in Supabase
+-- Script cập nhật bảng vnpt_potential_customers
 
+-- 1. Đảm bảo bảng tồn tại (nếu chưa có thì tạo)
 CREATE TABLE IF NOT EXISTS public.vnpt_potential_customers (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL,
     phone TEXT NOT NULL,
     address TEXT NOT NULL,
-    coordinates JSONB, -- Stores { "lat": number, "lng": number }
+    coordinates JSONB,
     "currentProvider" TEXT,
     "paymentMethod" TEXT,
     "previousBillingExpiration" TEXT,
@@ -17,34 +18,44 @@ CREATE TABLE IF NOT EXISTS public.vnpt_potential_customers (
     "createdBy" TEXT
 );
 
--- Bật RLS (Row Level Security) (Tuỳ chọn: Nếu bạn muốn bảo mật)
+-- 2. Thêm các cột mới nếu bảng đã có từ trước nhưng thiếu cột
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'vnpt_potential_customers' AND column_name = 'currentProvider') THEN
+        ALTER TABLE public.vnpt_potential_customers ADD COLUMN "currentProvider" TEXT;
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'vnpt_potential_customers' AND column_name = 'paymentMethod') THEN
+        ALTER TABLE public.vnpt_potential_customers ADD COLUMN "paymentMethod" TEXT;
+    END IF;
+END $$;
+
+-- 3. Xóa các policy cũ để tránh lỗi "already exists"
+DROP POLICY IF EXISTS "Cho phép xem với người dùng đã đăng nhập" ON public.vnpt_potential_customers;
+DROP POLICY IF EXISTS "Cho phép thêm với người dùng đã đăng nhập" ON public.vnpt_potential_customers;
+DROP POLICY IF EXISTS "Cho phép sửa với người dùng đã đăng nhập" ON public.vnpt_potential_customers;
+DROP POLICY IF EXISTS "Cho phép xóa với người dùng đã đăng nhập" ON public.vnpt_potential_customers;
+DROP POLICY IF EXISTS "Allow select for authenticated users" ON public.vnpt_potential_customers;
+DROP POLICY IF EXISTS "Allow insert for authenticated users" ON public.vnpt_potential_customers;
+DROP POLICY IF EXISTS "Allow update for authenticated users" ON public.vnpt_potential_customers;
+DROP POLICY IF EXISTS "Allow delete for authenticated users" ON public.vnpt_potential_customers;
+
+-- 4. Bật RLS
 ALTER TABLE public.vnpt_potential_customers ENABLE ROW LEVEL SECURITY;
 
--- Các Policy mẫu (có thể thay đổi tùy thuộc vào cách bạn thiết lập Auth)
--- Cho phép đọc với tất cả người dùng đã đăng nhập (Authenticated)
+-- 5. Tạo lại policies
 CREATE POLICY "Allow select for authenticated users" 
-ON public.vnpt_potential_customers 
-FOR SELECT 
-USING (auth.role() = 'authenticated');
+ON public.vnpt_potential_customers FOR SELECT USING (auth.role() = 'authenticated');
 
--- Cho phép người dùng (nhân viên) có quyền thêm mới khách hàng tiềm năng
 CREATE POLICY "Allow insert for authenticated users" 
-ON public.vnpt_potential_customers 
-FOR INSERT 
-WITH CHECK (auth.role() = 'authenticated');
+ON public.vnpt_potential_customers FOR INSERT WITH CHECK (auth.role() = 'authenticated');
 
--- Cho phép người tạo hoặc quản lý cập nhật khách hàng tiềm năng
 CREATE POLICY "Allow update for authenticated users" 
-ON public.vnpt_potential_customers 
-FOR UPDATE 
-USING (auth.role() = 'authenticated');
+ON public.vnpt_potential_customers FOR UPDATE USING (auth.role() = 'authenticated');
 
--- Cho phép người quản trị xóa (Cần thay đổi tùy theo logic phân quyền)
 CREATE POLICY "Allow delete for authenticated users" 
-ON public.vnpt_potential_customers 
-FOR DELETE 
-USING (auth.role() = 'authenticated');
+ON public.vnpt_potential_customers FOR DELETE USING (auth.role() = 'authenticated');
 
--- Create an index to quickly filter by staff / status
+-- 6. Indexes
 CREATE INDEX IF NOT EXISTS idx_potential_customers_staffId ON public.vnpt_potential_customers("staffId");
 CREATE INDEX IF NOT EXISTS idx_potential_customers_status ON public.vnpt_potential_customers(status);
