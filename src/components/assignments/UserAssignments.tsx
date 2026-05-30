@@ -1237,78 +1237,80 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
                  <LayoutGrid className="w-4 h-4 text-[#005BAA]" />
                  Danh mục chương trình
                </CardTitle>
-                <div className="flex items-center gap-1">
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className={cn("w-6 h-6 rounded-lg transition-colors", isManageMode ? "text-red-500 bg-red-50 hover:bg-red-100" : "text-slate-400 hover:text-[#005BAA]")}
-                    onClick={() => setIsManageMode(!isManageMode)}
-                    title={isManageMode ? "Thoát chế độ quản lý" : "Kích hoạt chế độ xóa/sửa"}
-                  >
-                    {isManageMode ? <Trash2 className="w-4 h-4" /> : <History className="w-4 h-4" />}
-                  </Button>
-                  <AnimatePresence>
-                    <Dialog open={addCategoryDialogOpen} onOpenChange={(open) => {
-                    setAddCategoryDialogOpen(open);
-                    if (!open) {
-                      setEditingCategory(null);
-                      setNewCat({ name: '', description: '', services: '' });
-                    }
-                  }}>
-                    <DialogTrigger 
-                      render={
-                        <Button variant="ghost" size="icon" className="w-6 h-6 rounded-lg text-[#005BAA] hover:bg-blue-50">
-                          <Plus className="w-4 h-4" />
-                        </Button>
-                      }
-                    />
-                    <DialogContent className="sm:max-w-md rounded-3xl">
-                      <DialogHeader>
-                        <DialogTitle className="text-lg font-black uppercase tracking-tight">
-                          {editingCategory ? 'Cập nhật chủ đề' : 'Thêm chủ đề mới'}
-                        </DialogTitle>
-                      </DialogHeader>
-                      <div className="space-y-4 py-4">
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-black uppercase text-slate-400">Tên chủ đề / Nhóm sản phẩm</label>
-                          <Input 
-                            value={newCat.name}
-                            onChange={e => setNewCat({...newCat, name: e.target.value})}
-                            placeholder="Ví dụ: Dịch vụ VinaPhone trả sau" 
-                            className="rounded-xl"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-black uppercase text-slate-400">Mô tả ngắn</label>
-                          <Input 
-                            value={newCat.description}
-                            onChange={e => setNewCat({...newCat, description: e.target.value})}
-                            placeholder="Mô tả tệp khách hàng..." 
-                            className="rounded-xl"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-black uppercase text-slate-400">Dịch vụ áp dụng (Cách nhau dấu phẩy)</label>
-                          <Input 
-                            value={newCat.services}
-                            onChange={e => setNewCat({...newCat, services: e.target.value})}
-                            placeholder="VinaPhone, MyTV..." 
-                            className="rounded-xl"
-                          />
-                        </div>
-                      </div>
-                      <div className="flex justify-end gap-3 pt-2">
-                        <Button variant="ghost" className="rounded-xl font-bold uppercase text-[10px]" onClick={() => setAddCategoryDialogOpen(false)}>Hủy</Button>
-                        <Button className="bg-[#005BAA] rounded-xl font-bold uppercase text-[10px] px-8" onClick={handleCreateCategory}>
-                          {editingCategory ? 'Cập nhật' : 'Tạo chủ đề'}
-                        </Button>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-                </AnimatePresence>
-              </div>
-            </CardHeader>
-            <CardContent className="p-2 max-h-[600px] overflow-y-auto custom-scrollbar">
+               {mode === 'LIST' && (
+                 <div className="flex items-center gap-1">
+                   <Button 
+                     variant="ghost" 
+                     size="icon" 
+                     className={cn("w-6 h-6 rounded-lg transition-colors", isManageMode ? "text-red-500 bg-red-50 hover:bg-red-100" : "text-slate-400 hover:text-[#005BAA]")}
+                     onClick={() => setIsManageMode(!isManageMode)}
+                     title={isManageMode ? "Thoát chế độ quản lý" : "Kích hoạt chế độ xóa/sửa"}
+                   >
+                     {isManageMode ? <Trash2 className="w-4 h-4" /> : <History className="w-4 h-4" />}
+                   </Button>
+                   <AnimatePresence>
+                     <Dialog open={addCategoryDialogOpen} onOpenChange={(open) => {
+                     setAddCategoryDialogOpen(open);
+                     if (!open) {
+                       setEditingCategory(null);
+                       setNewCat({ name: '', description: '', services: '' });
+                     }
+                   }}>
+                     <DialogTrigger 
+                       render={
+                         <Button variant="ghost" size="icon" className="w-6 h-6 rounded-lg text-[#005BAA] hover:bg-blue-50">
+                           <Plus className="w-4 h-4" />
+                         </Button>
+                       }
+                     />
+                     <DialogContent className="sm:max-w-md rounded-3xl">
+                       <DialogHeader>
+                         <DialogTitle className="text-lg font-black uppercase tracking-tight">
+                           {editingCategory ? 'Cập nhật chủ đề' : 'Thêm chủ đề mới'}
+                         </DialogTitle>
+                       </DialogHeader>
+                       <div className="space-y-4 py-4">
+                         <div className="space-y-2">
+                           <label className="text-[10px] font-black uppercase text-slate-400">Tên chủ đề / Nhóm sản phẩm</label>
+                           <Input 
+                             value={newCat.name}
+                             onChange={e => setNewCat({...newCat, name: e.target.value})}
+                             placeholder="Ví dụ: Dịch vụ VinaPhone trả sau" 
+                             className="rounded-xl"
+                           />
+                         </div>
+                         <div className="space-y-2">
+                           <label className="text-[10px] font-black uppercase text-slate-400">Mô tả ngắn</label>
+                           <Input 
+                             value={newCat.description}
+                             onChange={e => setNewCat({...newCat, description: e.target.value})}
+                             placeholder="Mô tả tệp khách hàng..." 
+                             className="rounded-xl"
+                           />
+                         </div>
+                         <div className="space-y-2">
+                           <label className="text-[10px] font-black uppercase text-slate-400">Dịch vụ áp dụng (Cách nhau dấu phẩy)</label>
+                           <Input 
+                             value={newCat.services}
+                             onChange={e => setNewCat({...newCat, services: e.target.value})}
+                             placeholder="VinaPhone, MyTV..." 
+                             className="rounded-xl"
+                           />
+                         </div>
+                       </div>
+                       <div className="flex justify-end gap-3 pt-2">
+                         <Button variant="ghost" className="rounded-xl font-bold uppercase text-[10px]" onClick={() => setAddCategoryDialogOpen(false)}>Hủy</Button>
+                         <Button className="bg-[#005BAA] rounded-xl font-bold uppercase text-[10px] px-8" onClick={handleCreateCategory}>
+                           {editingCategory ? 'Cập nhật' : 'Tạo chủ đề'}
+                         </Button>
+                       </div>
+                     </DialogContent>
+                   </Dialog>
+                 </AnimatePresence>
+               </div>
+               )}
+             </CardHeader>
+             <CardContent className="p-2 max-h-[600px] overflow-y-auto custom-scrollbar">
                <div className="space-y-1">
                  <button
                    onClick={() => {
@@ -1396,7 +1398,7 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
                      
                      <div className={cn(
                        "absolute right-8 top-1/2 -translate-y-1/2 flex items-center gap-1 transition-all",
-                       isManageMode ? "opacity-100 translate-x-0" : "opacity-0 group-hover:opacity-100 -translate-x-2"
+                       (mode === 'LIST' && isManageMode) ? "opacity-100 translate-x-0" : "opacity-0 group-hover:opacity-100 -translate-x-2"
                      )}>
                         <button 
                           onClick={(e) => { e.stopPropagation(); handleEditCategory(cat); }}
@@ -1538,7 +1540,7 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
                  <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 relative group">
                     <div className={cn(
                       "absolute top-2 right-2 flex items-center gap-1 transition-all",
-                      isManageMode ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                      (mode === 'LIST' && isManageMode) ? "opacity-100" : "opacity-0 group-hover:opacity-100"
                     )}>
                       <button 
                         onClick={() => handleEditBatch(selectedBatch)}
@@ -1601,7 +1603,7 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
                         <Download className="w-4 h-4 mr-2" />
                         Xuất báo cáo
                       </Button>
-                      {isManageMode && activeBatch !== 'all' && (
+                      {mode === 'LIST' && isManageMode && activeBatch !== 'all' && (
                         <Button 
                           onClick={handleDeleteAllInBatch}
                           variant="destructive"
@@ -1937,7 +1939,7 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
                                 >
                                   <UserPlus className="w-3.5 h-3.5" />
                                 </Button>
-                                {isManageMode && (
+                                {mode === 'LIST' && isManageMode && (
                                   <Button 
                                     onClick={() => handleDeleteIndividual(customer.id, customer.name)}
                                     variant="ghost" 
@@ -2099,9 +2101,11 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
             </div>
             <div className="h-10 w-px bg-white/10" />
             <div className="flex items-center gap-3">
-              <Button onClick={handleDeleteSelected} variant="ghost" className="text-red-400 hover:text-red-500 hover:bg-red-500/10 font-bold h-10 px-4 rounded-xl text-[11px] uppercase tracking-wide">
-                <Trash2 className="w-4 h-4 mr-2" /> Xóa tập KH
-              </Button>
+              {mode === 'LIST' && (
+                <Button onClick={handleDeleteSelected} variant="ghost" className="text-red-400 hover:text-red-500 hover:bg-red-500/10 font-bold h-10 px-4 rounded-xl text-[11px] uppercase tracking-wide">
+                  <Trash2 className="w-4 h-4 mr-2" /> Xóa tập KH
+                </Button>
+              )}
               <Button onClick={() => setAssignDialogOpen(true)} size="sm" className="bg-[#005ba1] hover:bg-blue-600 font-bold h-10 px-6 rounded-xl text-[11px] uppercase tracking-wide shadow-xl shadow-blue-500/20">Giao việc cho NV</Button>
             </div>
           </motion.div>
