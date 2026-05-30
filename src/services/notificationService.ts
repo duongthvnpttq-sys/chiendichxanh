@@ -131,11 +131,18 @@ export const notificationService = {
     
     // Broadcast via realtime channel if this is a new local creation
     if (broadcast && notifications.length > 0) {
-       supabase.channel('vnpt_notifications_channel').send({
-         type: 'broadcast',
-         event: 'new_notification',
-         payload: notifications[0]
-       }).catch(() => {});
+       try {
+         const channel = supabase.channel('vnpt_notifications_channel');
+         if (channel && channel.state === 'joined') {
+           channel.send({
+             type: 'broadcast',
+             event: 'new_notification',
+             payload: notifications[0]
+           }).catch(() => {});
+         }
+       } catch (e) {
+         console.warn("Realtime broadcast skipped:", e);
+       }
     }
     
     this.notify();
