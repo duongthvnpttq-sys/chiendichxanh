@@ -1595,6 +1595,18 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2 w-full xl:w-auto">
+                      {mode === 'LIST' && (
+                        <>
+                          <Button onClick={() => setAddCustomerDialogOpen(true)} variant="outline" className="border-slate-200 h-9 text-[10px] font-black uppercase tracking-wider text-emerald-600 rounded-xl hover:bg-emerald-50">
+                            <UserPlus className="w-4 h-4 mr-2" />
+                            Thêm lẻ KH
+                          </Button>
+                          <Button onClick={handleDownloadTemplate} variant="outline" className="border-slate-200 h-9 text-[10px] font-black uppercase tracking-wider text-[#005ba1] rounded-xl">
+                            <Download className="w-4 h-4 mr-2" />
+                            Mẫu Excel
+                          </Button>
+                        </>
+                      )}
                       <Button 
                         onClick={() => setExportDialogOpen(true)} 
                         variant="outline" 
@@ -1603,6 +1615,15 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
                         <Download className="w-4 h-4 mr-2" />
                         Xuất báo cáo
                       </Button>
+                      {mode === 'LIST' && (
+                        <Button onClick={handleImportExcel} 
+                          disabled={isImporting}
+                          className="bg-[#005ba1] hover:bg-blue-700 h-9 font-black shadow-lg shadow-blue-100 uppercase text-[10px] tracking-wider rounded-xl"
+                        >
+                          {isImporting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <FileUp className="w-4 h-4 mr-2" />}
+                          Import DS
+                        </Button>
+                      )}
                       {mode === 'LIST' && isManageMode && activeBatch !== 'all' && (
                         <Button 
                           onClick={handleDeleteAllInBatch}
