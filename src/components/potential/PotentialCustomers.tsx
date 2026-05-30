@@ -312,21 +312,21 @@ export default function PotentialCustomers() {
           </h2>
           <p className="text-xs text-slate-500 font-medium uppercase tracking-widest mt-1">Thu thập thông tin KH mới tại thị trường</p>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col sm:flex-row items-center gap-3">
+          <Button 
+            onClick={() => { resetForm(); setIsAddOpen(true); }}
+            className="w-full sm:w-auto bg-brand-orange hover:bg-[#E65A1E] text-white rounded-xl shadow-md shadow-orange-100 font-bold uppercase text-[11px] h-10 px-5 transition-all"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Thu thập thông tin
+          </Button>
           <Button 
             onClick={exportToExcel}
             variant="outline"
-            className="text-[#1c4b82] border-brand-indigo/20 hover:bg-brand-indigo/5 rounded-xl font-bold uppercase text-[11px] h-11 px-4 transition-all"
+            className="w-full sm:w-auto text-[#1c4b82] border-brand-indigo/20 hover:bg-brand-indigo/5 rounded-xl font-bold uppercase text-[11px] h-10 px-4 transition-all"
           >
             <Download className="w-4 h-4 mr-2" />
             Xuất Excel
-          </Button>
-          <Button 
-            onClick={() => { resetForm(); setIsAddOpen(true); }}
-            className="bg-brand-orange hover:bg-[#E65A1E] text-white rounded-xl shadow-lg shadow-orange-100 font-bold uppercase text-[11px] h-11 px-6 transition-all"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Thu thập thông tin KH
           </Button>
         </div>
       </div>
@@ -458,70 +458,61 @@ export default function PotentialCustomers() {
       </div>
 
       <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-        <DialogContent className="sm:max-w-xl rounded-[2rem] p-0 border-none shadow-2xl max-h-[95vh] flex flex-col overflow-hidden">
-          <DialogHeader className="bg-brand-indigo p-6 pb-8 shrink-0">
-            <DialogTitle className="text-xl font-black uppercase tracking-tight text-white flex items-center gap-2">
-              <TrendingUp className="w-6 h-6 text-brand-orange" />
+        <DialogContent className="sm:max-w-xl rounded-[2rem] p-0 border-none shadow-2xl max-h-[90vh] flex flex-col overflow-hidden">
+          <DialogHeader className="bg-brand-indigo p-5 shrink-0">
+            <DialogTitle className="text-lg font-black uppercase tracking-tight text-white flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-brand-orange" />
               Thêm KH Tiềm năng
             </DialogTitle>
           </DialogHeader>
           
-          <div className="p-6 -mt-4 bg-white rounded-t-[2rem] space-y-4 overflow-y-auto custom-scrollbar flex-1 relative z-10">
+          <div className="p-5 bg-white space-y-4 overflow-y-auto custom-scrollbar flex-1 relative z-10">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2 relative group">
-                <Label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Họ và tên *</Label>
-                <Input value={name} onChange={e => setName(e.target.value)} className="h-12 bg-slate-50 border-slate-200 rounded-xl font-medium" placeholder="Nhập họ tên KH" />
+              <div className="space-y-1.5 relative group">
+                <Label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Họ và tên *</Label>
+                <Input value={name} onChange={e => setName(e.target.value)} className="h-10 bg-slate-50 border-slate-200 rounded-xl font-medium text-sm" placeholder="Nhập họ tên KH" />
               </div>
-              <div className="space-y-2 relative group">
-                <Label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Số điện thoại *</Label>
-                <Input value={phone} onChange={e => setPhone(e.target.value)} className="h-12 bg-slate-50 border-slate-200 rounded-xl font-medium" placeholder="VD: 0912345678" />
+              <div className="space-y-1.5 relative group">
+                <Label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Số điện thoại *</Label>
+                <Input value={phone} onChange={e => setPhone(e.target.value)} className="h-10 bg-slate-50 border-slate-200 rounded-xl font-medium text-sm" placeholder="VD: 0912345678" />
               </div>
             </div>
             
-            <div className="space-y-2 relative group">
-              <Label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Địa chỉ *</Label>
-              <Input value={address} onChange={e => setAddress(e.target.value)} className="h-12 bg-slate-50 border-slate-200 rounded-xl font-medium" placeholder="Số nhà, đường, phường, quận..." />
+            <div className="space-y-1.5 relative group">
+              <Label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Địa chỉ *</Label>
+              <div className="flex gap-2">
+                <Input value={address} onChange={e => setAddress(e.target.value)} className="h-10 bg-slate-50 border-slate-200 rounded-xl font-medium flex-1 text-sm" placeholder="Số nhà, đường, phường, quận..." />
+                <Button onClick={handleGetLocation} type="button" variant="outline" className="h-10 w-10 shrink-0 rounded-xl border-slate-200 hover:bg-brand-indigo hover:text-white p-0 shadow-sm" title="Lấy toạ độ Check-in">
+                  <Crosshair className="w-4 h-4" />
+                </Button>
+              </div>
+              {coordinates && (
+                <p className="text-[10px] font-mono font-bold text-emerald-600 mt-1">✓ Đã lấy tọa độ: {coordinates.lat.toFixed(5)}, {coordinates.lng.toFixed(5)}</p>
+              )}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2 relative group">
-                <Label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Ngày hết cước trước (đ/tủ)</Label>
-                <Input value={previousBillingExpiration} onChange={e => setPreviousBillingExpiration(e.target.value)} className="h-12 bg-slate-50 border-slate-200 rounded-xl font-medium" placeholder="Tháng/Năm hoặc Nhà mạng cũ" />
-              </div>
-              
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Tọa độ Check-in</Label>
-                <div className="flex gap-2">
-                  <Input 
-                    value={coordinates ? `${coordinates.lat.toFixed(5)}, ${coordinates.lng.toFixed(5)}` : ''} 
-                    readOnly 
-                    className="h-12 bg-slate-50 border-slate-200 rounded-xl font-medium flex-1 text-xs" 
-                    placeholder="Chưa lấy tọa độ" 
-                  />
-                  <Button onClick={handleGetLocation} type="button" variant="outline" className="h-12 w-12 rounded-xl shrink-0 p-0 hover:bg-brand-indigo hover:text-white border-slate-200">
-                    <Crosshair className="w-5 h-5" />
-                  </Button>
-                </div>
-              </div>
+            <div className="space-y-1.5 relative group border-t border-slate-100 pt-3">
+              <Label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Ngày hết cước trước (đ/tủ)</Label>
+              <Input value={previousBillingExpiration} onChange={e => setPreviousBillingExpiration(e.target.value)} className="h-10 bg-slate-50 border-slate-200 rounded-xl font-medium text-sm" placeholder="Tháng/Năm hoặc Nhà mạng cũ" />
             </div>
 
-            <div className="space-y-2 relative group">
-              <Label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Điểm đau / Vấn đề của KH</Label>
+            <div className="space-y-1.5 relative group">
+              <Label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Điểm đau / Vấn đề của KH</Label>
               <textarea 
                 value={painPoints} 
                 onChange={e => setPainPoints(e.target.value)} 
-                className="bg-slate-50 border-slate-200 rounded-xl font-medium resize-none min-h-[80px] w-full p-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-indigo" 
-                placeholder="VD: Mạng chập chờn ban đêm, giá cước 1Office cao, cần nâng cấp thiết bị..." 
+                className="bg-slate-50 border-slate-200 rounded-xl font-medium resize-none min-h-[70px] w-full p-3 text-sm focus:outline-none focus:ring-1 focus:ring-brand-indigo transition-all" 
+                placeholder="VD: Mạng chập chờn ban đêm, giá thiết bị cao..." 
               />
             </div>
           </div>
 
           <DialogFooter className="bg-slate-50 border-t border-slate-100 p-4">
             <div className="flex gap-2 w-full">
-              <Button onClick={() => setIsAddOpen(false)} variant="ghost" className="flex-1 h-12 font-bold uppercase text-xs tracking-wider rounded-xl">
+              <Button onClick={() => setIsAddOpen(false)} variant="ghost" className="flex-1 h-10 font-bold uppercase text-[11px] tracking-wider rounded-xl">
                 Hủy
               </Button>
-              <Button onClick={handleSave} className="flex-1 h-12 bg-brand-orange hover:bg-[#E65A1E] text-white font-bold uppercase text-xs tracking-wider rounded-xl shadow-lg shadow-orange-100">
+              <Button onClick={handleSave} className="flex-1 h-10 bg-brand-orange hover:bg-[#E65A1E] text-white font-bold uppercase text-[11px] tracking-wider rounded-xl shadow-md shadow-orange-100">
                 Lưu thông tin
               </Button>
             </div>
@@ -551,54 +542,54 @@ export default function PotentialCustomers() {
         </DialogContent>
       </Dialog>
       <Dialog open={!!viewingCustomer} onOpenChange={() => setViewingCustomer(null)}>
-        <DialogContent className="sm:max-w-xl rounded-[2rem] p-0 border-none shadow-2xl max-h-[95vh] flex flex-col overflow-hidden">
-          <DialogHeader className="bg-slate-50 p-6 pb-6 border-b border-slate-100 shrink-0">
-            <DialogTitle className="text-xl font-black uppercase tracking-tight text-[#1c4b82] flex items-center gap-2">
-              <Search className="w-6 h-6 text-brand-orange" />
+        <DialogContent className="sm:max-w-xl rounded-[2rem] p-0 border-none shadow-2xl max-h-[90vh] flex flex-col overflow-hidden">
+          <DialogHeader className="bg-slate-50 p-5 pb-5 border-b border-slate-100 shrink-0">
+            <DialogTitle className="text-lg font-black uppercase tracking-tight text-[#1c4b82] flex items-center gap-2">
+              <Search className="w-5 h-5 text-brand-orange" />
               Chi tiết khách hàng
             </DialogTitle>
           </DialogHeader>
           {viewingCustomer && (
-            <div className="p-6 bg-white space-y-4 overflow-y-auto custom-scrollbar flex-1 relative z-10">
+            <div className="p-5 bg-white space-y-4 overflow-y-auto custom-scrollbar flex-1 relative z-10">
                <div>
-                  <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Họ và tên</p>
+                  <p className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Họ và tên</p>
                   <p className="text-sm font-bold text-slate-800">{viewingCustomer.name}</p>
                </div>
                <div className="grid grid-cols-2 gap-4">
                  <div>
-                    <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Số điện thoại</p>
+                    <p className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Số điện thoại</p>
                     <p className="text-sm font-bold text-slate-800">{viewingCustomer.phone}</p>
                  </div>
                  <div>
-                    <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Trạng thái</p>
+                    <p className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Trạng thái</p>
                     <p className="text-sm font-bold text-blue-600">{viewingCustomer.status === "NEW" ? "MỚI THU THẬP" : viewingCustomer.status === "CONTACTED" ? "ĐÃ TIẾP XÚC" : "ĐÃ CHỐT HĐ"}</p>
                  </div>
                </div>
                <div>
-                  <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Địa chỉ</p>
+                  <p className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Địa chỉ</p>
                   <p className="text-sm font-bold text-slate-800">{viewingCustomer.address}</p>
                </div>
                {viewingCustomer.coordinates && (
                  <div>
-                    <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Tọa độ Check-in</p>
+                    <p className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Tọa độ Check-in</p>
                     <p className="text-sm font-mono text-slate-800">{viewingCustomer.coordinates.lat.toFixed(5)}, {viewingCustomer.coordinates.lng.toFixed(5)}</p>
                  </div>
                )}
-               <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 mt-4 space-y-4">
+               <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 mt-2 space-y-3">
                  <div>
-                    <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider flex items-center justify-start gap-1"><StickyNote className="w-3 h-3" /> Kỳ hết cước trước</p>
-                    <p className="text-sm font-medium text-slate-700 mt-1">{viewingCustomer.previousBillingExpiration || 'Không có ghi chú'}</p>
+                    <p className="text-[10px] font-black uppercase text-slate-500 tracking-wider flex items-center justify-start gap-1"><StickyNote className="w-3 h-3" /> Kỳ hết cước trước</p>
+                    <p className="text-sm font-medium text-slate-700 mt-0.5">{viewingCustomer.previousBillingExpiration || 'Không có'}</p>
                  </div>
                  <div>
-                    <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider flex items-center justify-start gap-1"><Target className="w-3 h-3" /> Điểm đau / Vấn đề</p>
-                    <p className="text-sm font-medium text-slate-700 mt-1 whitespace-pre-wrap">{viewingCustomer.painPoints || 'Không có ghi chú'}</p>
+                    <p className="text-[10px] font-black uppercase text-slate-500 tracking-wider flex items-center justify-start gap-1"><Target className="w-3 h-3" /> Điểm đau / Vấn đề</p>
+                    <p className="text-sm font-medium text-slate-700 mt-0.5 whitespace-pre-wrap">{viewingCustomer.painPoints || 'Không có'}</p>
                  </div>
                </div>
 
                {/* Edit Form Section */}
-               <div className="mt-6 pt-4 border-t border-slate-100 space-y-4">
-                 <div className="space-y-2">
-                   <Label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Trạng thái bán hàng</Label>
+               <div className="mt-4 pt-4 border-t border-slate-100 space-y-4">
+                 <div className="space-y-1.5">
+                   <Label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Trạng thái bán hàng</Label>
                    <div className="flex gap-2">
                      {['NEW', 'CONTACTED', 'CONVERTED'].map(status => (
                        <button
@@ -612,12 +603,12 @@ export default function PotentialCustomers() {
                    </div>
                  </div>
 
-                 <div className="space-y-2">
-                   <Label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Nhật ký & Ghi chú bán hàng</Label>
+                 <div className="space-y-1.5">
+                   <Label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Nhật ký & Ghi chú bán hàng</Label>
                    <textarea 
                      value={editingSalesNotes} 
                      onChange={e => setEditingSalesNotes(e.target.value)} 
-                     className="bg-slate-50 border-slate-200 rounded-xl font-medium resize-none min-h-[80px] w-full p-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-indigo" 
+                     className="bg-slate-50 border-slate-200 rounded-xl font-medium resize-none min-h-[70px] w-full p-2.5 text-sm outline-none focus:ring-1 focus:ring-brand-indigo transition-all" 
                      placeholder="Ghi chú sau khi tiếp xúc KH..." 
                    />
                  </div>
@@ -626,10 +617,10 @@ export default function PotentialCustomers() {
           )}
           <DialogFooter className="bg-slate-50 border-t border-slate-100 p-4">
              <div className="flex gap-2 w-full">
-               <Button onClick={() => setViewingCustomer(null)} variant="ghost" className="flex-1 h-12 font-bold uppercase text-xs tracking-wider rounded-xl hover:bg-slate-200">
+               <Button onClick={() => setViewingCustomer(null)} variant="ghost" className="flex-1 h-10 font-bold uppercase text-[11px] tracking-wider rounded-xl hover:bg-slate-200">
                  Đóng
                </Button>
-               <Button onClick={handleUpdateCustomer} className="flex-1 h-12 bg-brand-orange hover:bg-[#E65A1E] text-white font-bold uppercase text-xs tracking-wider rounded-xl shadow-lg shadow-orange-100 w-full">
+               <Button onClick={handleUpdateCustomer} className="flex-1 h-10 bg-brand-orange hover:bg-[#E65A1E] text-white font-bold uppercase text-[11px] tracking-wider rounded-xl shadow-md shadow-orange-100 w-full">
                  Cập nhật
                </Button>
              </div>
