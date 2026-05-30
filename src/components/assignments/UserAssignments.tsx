@@ -1331,7 +1331,44 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
                    <ChevronRight className={cn("w-4 h-4 shrink-0 transition-transform", activeCategory === 'all' ? "translate-x-1" : "opacity-0")} />
                  </button>
 
-                 {categories.map((cat) => (
+                 {categories.map((cat) => {
+                   const catBatches = batches.filter(b => b.programId === cat.id);
+                   let statusColor = "bg-slate-300";
+                   let statusText = "Chưa có đợt";
+                   
+                   if (catBatches.length > 0) {
+                     const now = new Date();
+                     now.setHours(0, 0, 0, 0);
+                     const activeBatches = catBatches.filter(b => b.status === "ACTIVE" || b.status === "UPCOMING");
+                     
+                     if (activeBatches.length === 0) {
+                       statusColor = "bg-red-500";
+                       statusText = "Đã dừng";
+                     } else {
+                       let isRunning = false;
+                       let isEndingSoon = false;
+                       activeBatches.forEach(b => {
+                         const endDate = new Date(b.endDate);
+                         endDate.setHours(0, 0, 0, 0);
+                         const diffDays = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                         if (diffDays >= 0 && diffDays <= 3) isEndingSoon = true;
+                         else if (diffDays > 3) isRunning = true;
+                       });
+                       
+                       if (isRunning) {
+                         statusColor = "bg-green-500";
+                         statusText = "Đang chạy";
+                       } else if (isEndingSoon) {
+                         statusColor = "bg-orange-500";
+                         statusText = "Sắp dừng";
+                       } else {
+                         statusColor = "bg-red-500";
+                         statusText = "Đã dừng";
+                       }
+                     }
+                   }
+
+                   return (
                    <div key={cat.id} className="relative group">
                      <button
                        onClick={() => {
@@ -1341,15 +1378,18 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
                          }
                        }}
                        className={cn(
-                         "w-full flex items-center justify-between p-3 rounded-xl transition-all text-left",
+                         "w-full flex items-center justify-between p-3 rounded-xl transition-all text-left border-l-4",
                          activeCategory === cat.id 
-                           ? "bg-blue-50 text-[#005BAA] shadow-sm shadow-blue-100" 
-                           : "text-slate-600 hover:bg-slate-50"
+                           ? `bg-blue-50 text-[#005BAA] shadow-sm shadow-blue-100 border-[#005BAA]` 
+                           : `text-slate-600 hover:bg-slate-50 border-transparent hover:border-slate-200`
                        )}
                      >
-                       <div className="min-w-0 flex-1">
-                          <p className="text-xs font-bold truncate">{cat.name}</p>
-                          <p className="text-[9px] text-slate-400 font-medium truncate mt-0.5">{cat.description}</p>
+                       <div className="min-w-0 flex-1 flex items-start gap-2.5">
+                          <div className={cn("w-2 h-2 rounded-full mt-1.5 shrink-0 shadow-sm", statusColor)} title={statusText} />
+                          <div>
+                            <p className="text-xs font-bold truncate">{cat.name}</p>
+                            <p className="text-[9px] text-slate-400 font-medium truncate mt-0.5">{cat.description}</p>
+                          </div>
                        </div>
                        <ChevronRight className={cn("w-4 h-4 shrink-0 transition-transform", activeCategory === cat.id ? "translate-x-1" : "opacity-0")} />
                      </button>
@@ -1381,7 +1421,7 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
                         </button>
                      </div>
                    </div>
-                 ))}
+                 )})}
                </div>
             </CardContent>
           </Card>
