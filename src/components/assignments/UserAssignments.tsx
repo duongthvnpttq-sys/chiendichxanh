@@ -62,7 +62,7 @@ import {
 import { dataService, Customer, Assignment, ImplementationBatch, ProgramCategory } from "@/src/services/dataService";
 import { userService, UserDetail, Territory } from "@/src/services/userService";
 import { authService } from "@/src/services/authService";
-import { Plus, Trash2, FolderPlus, Camera, UserMinus } from 'lucide-react';
+import { Plus, Trash2, FolderPlus, Camera, UserMinus, Pencil } from 'lucide-react';
 import { notificationService } from "@/src/services/notificationService";
 
 interface UserAssignmentsProps {
@@ -1388,13 +1388,45 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
                      >
                        <div className="min-w-0 flex-1 flex items-start gap-2.5">
                           <div className={cn("w-2 h-2 rounded-full mt-1.5 shrink-0 shadow-sm", statusColor)} title={statusText} />
-                          <div>
-                            <p className="text-xs font-bold truncate">{cat.name}</p>
-                            <p className="text-[9px] text-slate-400 font-medium truncate mt-0.5">{cat.description}</p>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-bold truncate pr-3">{cat.name}</p>
+                            <p className="text-[9px] text-slate-400 font-medium truncate mt-0.5 pr-3">{cat.description}</p>
                           </div>
                        </div>
-                       <ChevronRight className={cn("w-4 h-4 shrink-0 transition-transform", activeCategory === cat.id ? "translate-x-1" : "opacity-0")} />
+                       <ChevronRight className={cn("w-4 h-4 shrink-0 transition-transform group-hover:hidden", activeCategory === cat.id ? "translate-x-1" : "opacity-0")} />
                      </button>
+                     
+                     <div className={cn(
+                        "absolute right-2 top-1/2 -translate-y-1/2 hidden group-hover:flex items-center gap-0.5",
+                      )}>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className={cn("w-6 h-6", activeCategory === cat.id ? "hover:bg-blue-200/50" : "hover:bg-slate-200/50")}
+                          onClick={(e) => { e.stopPropagation(); handleEditCategory(cat); }}
+                          title="Sửa chương trình"
+                        >
+                          <Pencil className="w-3 h-3 text-[#005BAA]" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className={cn("w-6 h-6", activeCategory === cat.id ? "hover:bg-blue-200/50" : "hover:bg-slate-200/50")}
+                          onClick={(e) => { e.stopPropagation(); handleDeleteAllInCategory(cat.id, cat.name); }}
+                          title="Xóa tất tập khách hàng khỏi chương trình (Hết chiến dịch)"
+                        >
+                          <UserMinus className="w-3 h-3 text-orange-500" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className={cn("w-6 h-6", activeCategory === cat.id ? "hover:bg-blue-200/50" : "hover:bg-slate-200/50")}
+                          onClick={(e) => { e.stopPropagation(); handleDeleteCategory(cat.id, cat.name); }}
+                          title="Xóa toàn bộ chương trình"
+                        >
+                          <Trash2 className="w-3 h-3 text-red-500" />
+                        </Button>
+                      </div>
                    </div>
                  )})}
                </div>
@@ -1439,6 +1471,35 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
                      })()}
                    </SelectContent>
                  </Select>
+
+                 {activeBatch !== 'all' && (
+                    <>
+                      <Button 
+                        variant="outline" 
+                        size="icon" 
+                        title="Sửa đợt triển khai"
+                        className="h-10 w-10 shrink-0 border-slate-200 rounded-xl hover:bg-amber-50 hover:text-amber-600 hover:border-amber-200"
+                        onClick={() => {
+                          const batchToEdit = batches.find(b => b.id === activeBatch);
+                          if (batchToEdit) handleEditBatch(batchToEdit);
+                        }}
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="icon" 
+                        title="Xóa đợt triển khai"
+                        className="h-10 w-10 shrink-0 border-slate-200 rounded-xl hover:bg-red-50 hover:text-red-600 hover:border-red-200"
+                        onClick={() => {
+                          const batchToDel = batches.find(b => b.id === activeBatch);
+                          if (batchToDel) handleDeleteBatch(batchToDel.id, batchToDel.name);
+                        }}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </>
+                 )}
 
                  <Dialog open={addBatchDialogOpen} onOpenChange={setAddBatchDialogOpen}>
                     <DialogTrigger 
