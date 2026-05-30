@@ -34,6 +34,8 @@ export default function PotentialCustomers() {
   const [name, setName] = React.useState('');
   const [phone, setPhone] = React.useState('');
   const [address, setAddress] = React.useState('');
+  const [currentProvider, setCurrentProvider] = React.useState('');
+  const [isMonthlyPayment, setIsMonthlyPayment] = React.useState(false);
   const [previousBillingExpiration, setPreviousBillingExpiration] = React.useState('');
   const [painPoints, setPainPoints] = React.useState('');
   const [coordinates, setCoordinates] = React.useState<{lat: number, lng: number} | null>(null);
@@ -106,7 +108,9 @@ export default function PotentialCustomers() {
         name,
         phone,
         address,
-        previousBillingExpiration,
+        currentProvider,
+        paymentMethod: isMonthlyPayment ? 'MONTHLY' : 'PREPAID',
+        previousBillingExpiration: isMonthlyPayment ? '' : previousBillingExpiration,
         painPoints,
         coordinates: coordinates || undefined,
         status: 'NEW',
@@ -166,6 +170,8 @@ export default function PotentialCustomers() {
     setName('');
     setPhone('');
     setAddress('');
+    setCurrentProvider('');
+    setIsMonthlyPayment(false);
     setPreviousBillingExpiration('');
     setPainPoints('');
     setCoordinates(null);
@@ -229,7 +235,7 @@ export default function PotentialCustomers() {
 
     // Headers
     const headers = [
-      'STT', 'Họ tên', 'Số điện thoại', 'Địa chỉ', 'Kỳ hết cước', 
+      'STT', 'Họ tên', 'Số điện thoại', 'Địa chỉ', 'Nhà mạng', 'Hết trước cước', 
       'Tọa độ', 'Điểm đau/vấn đề', 'Ghi chú bán hàng', 'Trạng thái', 'Người thu thập'
     ];
     const headerRow = worksheet.addRow(headers);
@@ -252,7 +258,8 @@ export default function PotentialCustomers() {
       { width: 20 }, // Họ tên
       { width: 15 }, // SĐT
       { width: 30 }, // Địa chỉ
-      { width: 15 }, // Kỳ hết cước
+      { width: 15 }, // Nhà mạng
+      { width: 15 }, // Kỳ hết cước / Thanh toán
       { width: 22 }, // Tọa độ
       { width: 25 }, // Vấn đề
       { width: 25 }, // Ghi chú
@@ -267,7 +274,8 @@ export default function PotentialCustomers() {
         c.name,
         c.phone,
         c.address,
-        c.previousBillingExpiration || '',
+        c.currentProvider || '',
+        c.paymentMethod === 'MONTHLY' ? 'Thanh toán hàng tháng' : (c.previousBillingExpiration || ''),
         c.coordinates ? `${c.coordinates.lat.toFixed(5)}, ${c.coordinates.lng.toFixed(5)}` : '',
         c.painPoints || '',
         c.salesNotes || '',
@@ -391,10 +399,14 @@ export default function PotentialCustomers() {
                        </div>
                      </div>
                      
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                       <div className="bg-slate-50 p-4 rounded-xl">
+                         <p className="text-[10px] font-bold uppercase mb-1 flex items-center gap-1 text-slate-400">Đang dùng mạng</p>
+                         <p className="text-sm font-bold text-slate-700">{c.currentProvider || '---'}</p>
+                       </div>
                        <div className={c.previousBillingExpiration ? "bg-red-50 p-4 rounded-xl border border-red-100" : "bg-slate-50 p-4 rounded-xl"}>
                          <p className={`text-[10px] font-bold uppercase mb-1 flex items-center gap-1 ${c.previousBillingExpiration ? 'text-red-500' : 'text-slate-400'}`}><StickyNote className="w-3 h-3" /> Kỳ hết cước trước (Đ/Tủ)</p>
-                         <p className={`text-sm font-medium ${c.previousBillingExpiration ? 'text-red-800 font-bold' : 'text-slate-700'}`}>{c.previousBillingExpiration || 'Không có ghi chú'}</p>
+                         <p className={`text-sm font-medium ${c.previousBillingExpiration ? 'text-red-800 font-bold' : 'text-slate-700'}`}>{c.paymentMethod === 'MONTHLY' ? 'Thanh toán hàng tháng' : (c.previousBillingExpiration || 'Không có ghi chú')}</p>
                        </div>
                        <div className={c.painPoints ? "bg-orange-50 p-4 rounded-xl border border-orange-100" : "bg-slate-50 p-4 rounded-xl"}>
                          <p className={`text-[10px] font-bold uppercase mb-1 flex items-center gap-1 ${c.painPoints ? 'text-orange-500' : 'text-slate-400'}`}><Target className="w-3 h-3" /> Điểm đau / Vấn đề</p>
@@ -492,11 +504,29 @@ export default function PotentialCustomers() {
             </div>
 
             <div className="space-y-1.5 relative group border-t border-slate-100 pt-3">
-              <Label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Ngày hết cước trước (đ/tủ)</Label>
-              <Input value={previousBillingExpiration} onChange={e => setPreviousBillingExpiration(e.target.value)} className="h-10 bg-slate-50 border-slate-200 rounded-xl font-medium text-sm" placeholder="Tháng/Năm hoặc Nhà mạng cũ" />
+              <Label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Đang dùng nhà CC</Label>
+              <select value={currentProvider} onChange={e => setCurrentProvider(e.target.value)} className="h-10 bg-slate-50 border border-slate-200 rounded-xl font-medium text-sm px-3 w-full outline-none focus:ring-2 focus:ring-brand-indigo/20 focus:border-brand-indigo">
+                <option value="">Chọn nhà cung cấp...</option>
+                <option value="FPT">FPT</option>
+                <option value="Viettel">Viettel</option>
+                <option value="Mobifone">Mobifone</option>
+                <option value="Khác">Khác</option>
+              </select>
             </div>
 
-            <div className="space-y-1.5 relative group">
+            <div className="flex items-center gap-2 mt-2">
+              <input type="checkbox" id="monthlyPayment" checked={isMonthlyPayment} onChange={e => setIsMonthlyPayment(e.target.checked)} className="w-4 h-4 rounded border-slate-300 text-brand-indigo focus:ring-brand-indigo" />
+              <label htmlFor="monthlyPayment" className="text-[11px] font-bold text-slate-700 cursor-pointer">Dùng thanh toán hàng tháng</label>
+            </div>
+
+            {!isMonthlyPayment && (
+              <div className="space-y-1.5 relative group mt-2">
+                <Label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Tháng hết hạn đóng trước cước</Label>
+                <Input type="month" value={previousBillingExpiration} onChange={e => setPreviousBillingExpiration(e.target.value)} className="h-10 bg-slate-50 border-slate-200 rounded-xl font-medium text-sm" />
+              </div>
+            )}
+
+            <div className="space-y-1.5 relative group mt-2">
               <Label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Điểm đau / Vấn đề của KH</Label>
               <textarea 
                 value={painPoints} 
@@ -577,8 +607,12 @@ export default function PotentialCustomers() {
                )}
                <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 mt-2 space-y-3">
                  <div>
+                    <p className="text-[10px] font-black uppercase text-slate-500 tracking-wider flex items-center justify-start gap-1">Đang dùng mạng / Hình thức TT</p>
+                    <p className="text-sm font-bold text-slate-700 mt-0.5 whitespace-pre-wrap">{viewingCustomer.currentProvider || 'Chưa cung cấp'} • {viewingCustomer.paymentMethod === 'MONTHLY' ? 'Thanh toán hàng tháng' : `Trả trước: ${viewingCustomer.previousBillingExpiration || '---'}`}</p>
+                 </div>
+                 <div>
                     <p className="text-[10px] font-black uppercase text-slate-500 tracking-wider flex items-center justify-start gap-1"><StickyNote className="w-3 h-3" /> Kỳ hết cước trước</p>
-                    <p className="text-sm font-medium text-slate-700 mt-0.5">{viewingCustomer.previousBillingExpiration || 'Không có'}</p>
+                    <p className="text-sm font-medium text-slate-700 mt-0.5">{viewingCustomer.paymentMethod === 'MONTHLY' ? 'Thanh toán hàng tháng' : (viewingCustomer.previousBillingExpiration || 'Không có')}</p>
                  </div>
                  <div>
                     <p className="text-[10px] font-black uppercase text-slate-500 tracking-wider flex items-center justify-start gap-1"><Target className="w-3 h-3" /> Điểm đau / Vấn đề</p>

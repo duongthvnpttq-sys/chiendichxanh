@@ -93,6 +93,8 @@ export interface PotentialCustomer {
   phone: string;
   address: string;
   coordinates?: { lat: number; lng: number };
+  currentProvider?: string;
+  paymentMethod?: string;
   previousBillingExpiration?: string;
   painPoints?: string;
   salesNotes?: string;
