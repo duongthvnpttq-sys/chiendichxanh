@@ -708,6 +708,12 @@ export const dataService = {
     return potentials;
   },
 
+  async forceSyncPotentials() {
+    this._syncing.potentials = false;
+    lastPotentialsSync = 0; // reset
+    await this.getPotentialCustomers();
+  },
+
   async addPotentialCustomer(customer: Omit<PotentialCustomer, 'id' | 'createdAt'>) {
     const current = await this.getPotentialCustomers();
     const newCustomer = { 
