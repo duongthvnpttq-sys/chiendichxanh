@@ -1,5 +1,5 @@
 
-import { fetchFromSupabase, upsertToSupabase, supabase } from './dataService';
+import { fetchFromSupabase, upsertToSupabase, deleteFromSupabase, supabase } from './dataService';
 import { authService } from './authService';
 
 export interface VNPTNotification {
@@ -14,6 +14,7 @@ export interface VNPTNotification {
 }
 
 const STORAGE_KEY = 'vnpt_notifications';
+const DELETED_KEY = 'vnpt_deleted_notifications';
 let lastSync = 0;
 let isSyncing = false;
 let channelInitialized = false;
@@ -73,7 +74,33 @@ export const notificationService = {
             this.notify();
          }
       }
-    }).subscribe();
+    });
+
+    channel.on('broadcast', { event: 'update_notification' }, (payload) => {
+      const updateData = payload.payload;
+      if (updateData && updateData.id) {
+         const local = getLocal<VNPTNotification[]>(STORAGE_KEY, []);
+         const existingIndex = local.findIndex(n => n.id === updateData.id);
+         if (existingIndex !== -1 && local[existingIndex].read !== updateData.read) {
+            local[existingIndex] = { ...local[existingIndex], ...updateData };
+            setLocal(STORAGE_KEY, local);
+            this.notify();
+         }
+      }
+    });
+
+    channel.on('broadcast', { event: 'delete_notification' }, (payload) => {
+      const { id } = payload.payload;
+      if (id) {
+         const local = getLocal<VNPTNotification[]>(STORAGE_KEY, []);
+         if (local.some(n => n.id === id)) {
+            setLocal(STORAGE_KEY, local.filter(n => n.id !== id));
+            this.notify();
+         }
+      }
+    });
+    
+    channel.subscribe();
   },
 
   getNotifications(): VNPTNotification[] {
@@ -88,11 +115,36 @@ export const notificationService = {
       isSyncing = true;
       fetchFromSupabase<VNPTNotification[]>('vnpt_notifications', 'notifications', [])
         .then(dbData => {
-          if (dbData && dbData.length > 0) {
+          if (dbData) {
              const local = getLocal<VNPTNotification[]>(STORAGE_KEY, []);
-             const merged = [...dbData];
+             const deletedIds = getLocal<string[]>(DELETED_KEY, []);
+             
+             if (deletedIds.length > 0) {
+               const stillInDb = dbData.filter(d => deletedIds.includes(d.id));
+               if (stillInDb.length > 0) {
+                 deleteFromSupabase('vnpt_notifications', 'notifications', 'id', stillInDb.map(x => x.id)).catch(()=>{});
+               }
+               dbData = dbData.filter(d => !deletedIds.includes(d.id));
+             }
+
              const dbIds = new Set(dbData.map(d => d.id));
-             local.forEach(l => { if (!dbIds.has(l.id)) merged.push(l); });
+             // Keep local only if recently created and not deleted
+             const oneHourAgo = Date.now() - 3600000;
+             const localOnly = local.filter(l => !dbIds.has(l.id) && !deletedIds.includes(l.id) && new Date(l.timestamp).getTime() > oneHourAgo);
+             
+             // Upload localOnly if any are missing from DB
+             if (localOnly.length > 0) {
+                upsertToSupabase('vnpt_notifications', 'notifications', localOnly.map(n => ({
+                  ...n,
+                  actionUrl: n.actionUrl || null,
+                  userId: n.userId || null
+                }))).catch(()=>{});
+             }
+
+             const merged = [...dbData, ...localOnly];
+             
+             // Sort by timestamp desc to be clean
+             merged.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
              setLocal(STORAGE_KEY, merged);
              lastSync = Date.now();
@@ -162,17 +214,61 @@ export const notificationService = {
 
   markAsRead(id: string) {
     const rawNotifications = getLocal<VNPTNotification[]>(STORAGE_KEY, []);
-    this.saveNotifications(rawNotifications.map(n => n.id === id ? { ...n, read: true } : n), false);
+    const updated = rawNotifications.map(n => n.id === id ? { ...n, read: true } : n);
+    this.saveNotifications(updated, false);
+    
+    try {
+      const channel = supabase.channel('vnpt_notifications_channel');
+      if (channel && channel.state === 'joined') {
+        channel.send({
+          type: 'broadcast',
+          event: 'update_notification',
+          payload: { id, read: true }
+        }).catch(() => {});
+      }
+    } catch (e) {}
   },
 
   markAllAsRead() {
     const rawNotifications = getLocal<VNPTNotification[]>(STORAGE_KEY, []);
-    this.saveNotifications(rawNotifications.map(n => ({ ...n, read: true })), false);
+    const updated = rawNotifications.map(n => ({ ...n, read: true }));
+    this.saveNotifications(updated, false);
+    
+    updated.forEach(n => {
+      try {
+        const channel = supabase.channel('vnpt_notifications_channel');
+        if (channel && channel.state === 'joined') {
+          channel.send({
+             type: 'broadcast',
+             event: 'update_notification',
+             payload: { id: n.id, read: true }
+          }).catch(() => {});
+        }
+      } catch (e) {}
+    });
   },
 
   deleteNotification(id: string) {
     const rawNotifications = getLocal<VNPTNotification[]>(STORAGE_KEY, []);
     this.saveNotifications(rawNotifications.filter(n => n.id !== id), false);
+    
+    // Track deleted
+    const deletedIds = getLocal<string[]>(DELETED_KEY, []);
+    if (!deletedIds.includes(id)) {
+      setLocal(DELETED_KEY, [...deletedIds, id]);
+    }
+    deleteFromSupabase('vnpt_notifications', 'notifications', 'id', [id]).catch(() => {});
+    
+    try {
+      const channel = supabase.channel('vnpt_notifications_channel');
+      if (channel && channel.state === 'joined') {
+        channel.send({
+          type: 'broadcast',
+          event: 'delete_notification',
+          payload: { id }
+        }).catch(() => {});
+      }
+    } catch (e) {}
   },
 
   getUnreadCount(): number {
