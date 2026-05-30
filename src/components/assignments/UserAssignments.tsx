@@ -62,7 +62,7 @@ import {
 import { dataService, Customer, Assignment, ImplementationBatch, ProgramCategory } from "@/src/services/dataService";
 import { userService, UserDetail, Territory } from "@/src/services/userService";
 import { authService } from "@/src/services/authService";
-import { Plus, Trash2, FolderPlus, Camera } from 'lucide-react';
+import { Plus, Trash2, FolderPlus, Camera, UserMinus } from 'lucide-react';
 import { notificationService } from "@/src/services/notificationService";
 
 interface UserAssignmentsProps {
@@ -210,20 +210,22 @@ export default function UserAssignments({ mode = 'ASSIGN', onNavigate }: UserAss
     });
   };
 
-  const handleDeleteAllInCategory = async () => {
-    if (activeCategory === 'all') {
-      toast.error("Vui lòng chọn một chương trình cụ thể để xóa tất cả.");
-      return;
-    }
-    
+  const handleDeleteAllInCategory = async (categoryId: string, categoryName: string) => {
     setConfirmDelete({
       open: true,
-      title: 'Xóa toàn bộ khách hàng trong chương trình',
-      description: `Bạn có chắc muốn xóa TẤT CẢ ${filteredCustomers.length} khách hàng thuộc chương trình này? Hành động này không thể hoàn tác.`,
+      title: 'Xóa sạch danh sách KH của chương trình',
+      description: `Bạn có chắc muốn xóa toàn bộ khách hàng thuộc chương trình/danh mục "${categoryName}"? Hành động này rất hữu ích khi chương trình đã kết thúc và bạn muốn dọn dẹp dữ liệu.`,
       onConfirm: async () => {
-        const ids = filteredCustomers.map(c => c.id);
+        const batchIdsInCat = batches.filter(b => b.programId === categoryId).map(b => b.id);
+        const customersInCat = customers.filter(c => c.categoryId === categoryId || (c.campaignId && batchIdsInCat.includes(c.campaignId)));
+        if (customersInCat.length === 0) {
+          toast.info("Không có khách hàng nào trong chương trình này.");
+          setConfirmDelete(prev => ({ ...prev, open: false }));
+          return;
+        }
+        const ids = customersInCat.map(c => c.id);
         await dataService.deleteCustomersBulk(ids);
-        toast.success(`Đã xóa sạch ${ids.length} khách hàng trong chương trình.`);
+        toast.success(`Đã xóa sạch ${ids.length} khách hàng của chương trình ${categoryName}.`);
         setConfirmDelete(prev => ({ ...prev, open: false }));
       }
     });
@@ -1359,12 +1361,21 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
                         <button 
                           onClick={(e) => { e.stopPropagation(); handleEditCategory(cat); }}
                           className="p-1.5 bg-white shadow-sm border border-slate-100 rounded-lg text-slate-400 hover:text-blue-500 hover:border-blue-100 transition-all"
+                          title="Sửa chương trình"
                         >
                           <History className="w-3.5 h-3.5" />
                         </button>
                         <button 
+                          onClick={(e) => { e.stopPropagation(); handleDeleteAllInCategory(cat.id, cat.name); }}
+                          className="p-1.5 bg-white shadow-sm border border-slate-100 rounded-lg text-slate-400 hover:text-orange-500 hover:border-orange-100 transition-all"
+                          title="Xóa KH khi CT kết thúc"
+                        >
+                          <UserMinus className="w-3.5 h-3.5" />
+                        </button>
+                        <button 
                           onClick={(e) => { e.stopPropagation(); handleDeleteCategory(cat.id, cat.name); }}
                           className="p-1.5 bg-white shadow-sm border border-slate-100 rounded-lg text-slate-400 hover:text-red-500 hover:border-red-100 transition-all"
+                          title="Xóa chương trình"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -1565,16 +1576,6 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
                         {isImporting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <FileUp className="w-4 h-4 mr-2" />}
                         Import DS
                       </Button>
-                      {isManageMode && activeCategory !== 'all' && activeBatch === 'all' && (
-                        <Button 
-                          onClick={handleDeleteAllInCategory}
-                          variant="destructive"
-                          className="h-9 font-black shadow-lg shadow-red-100 uppercase text-[10px] tracking-wider rounded-xl"
-                        >
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          Xóa sạch CT
-                        </Button>
-                      )}
                       {isManageMode && activeBatch !== 'all' && (
                         <Button 
                           onClick={handleDeleteAllInBatch}
