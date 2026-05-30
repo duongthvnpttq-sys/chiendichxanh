@@ -208,7 +208,7 @@ export async function upsertToSupabase(table1: string, table2: string, records: 
           return { success: false, error: error2 };
         }
       } else if (error) {
-         console.warn(`Supabase upsert failed on ${table1}:`, error.message);
+         console.warn(`Supabase upsert failed on ${table1}:`, error.message, error.details, error.hint, error);
          return { success: false, error };
       }
     }
@@ -407,13 +407,15 @@ export const dataService = {
             // Update existing assignment (Adjustment)
             targetAssignment = { 
                 ...existing, 
+                id: existing.id || Math.random().toString(36).substr(2, 9),
                 staffId: a.staffId,
                 status: (a.status || existing.status) as Assignment['status'],
                 assignedDate: new Date().toISOString(),
                 deadline: a.deadline || existing.deadline,
                 managerNotes: a.managerNotes || existing.managerNotes,
                 priority: a.priority || existing.priority,
-                taskType: a.taskType || existing.taskType
+                taskType: a.taskType || existing.taskType,
+                assignedBy: a.assignedBy || existing.assignedBy
             };
             results.updated++;
             results.success++;
