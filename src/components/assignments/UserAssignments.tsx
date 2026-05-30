@@ -210,6 +210,25 @@ export default function UserAssignments({ mode = 'ASSIGN', onNavigate }: UserAss
     });
   };
 
+  const handleDeleteAllInCategory = async () => {
+    if (activeCategory === 'all') {
+      toast.error("Vui lòng chọn một chương trình cụ thể để xóa tất cả.");
+      return;
+    }
+    
+    setConfirmDelete({
+      open: true,
+      title: 'Xóa toàn bộ khách hàng trong chương trình',
+      description: `Bạn có chắc muốn xóa TẤT CẢ ${filteredCustomers.length} khách hàng thuộc chương trình này? Hành động này không thể hoàn tác.`,
+      onConfirm: async () => {
+        const ids = filteredCustomers.map(c => c.id);
+        await dataService.deleteCustomersBulk(ids);
+        toast.success(`Đã xóa sạch ${ids.length} khách hàng trong chương trình.`);
+        setConfirmDelete(prev => ({ ...prev, open: false }));
+      }
+    });
+  };
+
   const [exportDialogOpen, setExportDialogOpen] = React.useState(false);
   const [exportCategoryIds, setExportCategoryIds] = React.useState<string[]>([]);
   const [exportBatchIds, setExportBatchIds] = React.useState<string[]>([]);
@@ -1546,6 +1565,16 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
                         {isImporting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <FileUp className="w-4 h-4 mr-2" />}
                         Import DS
                       </Button>
+                      {isManageMode && activeCategory !== 'all' && activeBatch === 'all' && (
+                        <Button 
+                          onClick={handleDeleteAllInCategory}
+                          variant="destructive"
+                          className="h-9 font-black shadow-lg shadow-red-100 uppercase text-[10px] tracking-wider rounded-xl"
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Xóa sạch CT
+                        </Button>
+                      )}
                       {isManageMode && activeBatch !== 'all' && (
                         <Button 
                           onClick={handleDeleteAllInBatch}
