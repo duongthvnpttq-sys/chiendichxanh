@@ -342,8 +342,8 @@ export default function PotentialCustomers() {
               try {
                 await dataService.forceSyncPotentials();
                 toast.success("Đồng bộ thành công!");
-              } catch (e) {
-                toast.error("Đồng bộ thất bại");
+              } catch (e: any) {
+                toast.error("Đồng bộ thất bại: " + (e.message || "Lỗi không xác định"));
               }
             }}
             variant="outline"

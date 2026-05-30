@@ -7,6 +7,7 @@ let lastBatchesSync = 0;
 const SYNC_INTERVAL = 2000; // 2 seconds for near real-time experiences
 
 import { createClient } from "@supabase/supabase-js";
+import { toast } from 'sonner';
 
 const rawUrl = "https://zlhygscjdtkjybzuiijc.supabase.co/rest/v1/";
 const SUPABASE_URL = rawUrl.replace(/\/rest\/v1\/?$/, ""); 
@@ -711,7 +712,12 @@ export const dataService = {
   async forceSyncPotentials() {
     this._syncing.potentials = false;
     lastPotentialsSync = 0; // reset
-    await this.getPotentialCustomers();
+    try {
+      await this.getPotentialCustomers();
+    } catch(err: any) {
+      console.error(err);
+      throw err;
+    }
   },
 
   async addPotentialCustomer(customer: Omit<PotentialCustomer, 'id' | 'createdAt'>) {
@@ -723,8 +729,8 @@ export const dataService = {
     };
     setLocal(STORAGE_KEYS.POTENTIAL_CUSTOMERS, [...current, newCustomer]);
 
-    await upsertToSupabase('vnpt_potential_customers', 'potential_customers', [newCustomer]);
-
+    const res = await upsertToSupabase('vnpt_potential_customers', 'potential_customers', [newCustomer]);
+    if (!res?.success) toast.error("Có lỗi khi lưu lên hệ thống đám mây: " + (res?.error?.message || ""));
     this.notify();
     return newCustomer;
   },
@@ -742,7 +748,8 @@ export const dataService = {
     setLocal(STORAGE_KEYS.POTENTIAL_CUSTOMERS, updated);
 
     if (target) {
-      await upsertToSupabase('vnpt_potential_customers', 'potential_customers', [target]);
+      const res = await upsertToSupabase('vnpt_potential_customers', 'potential_customers', [target]);
+      if (!res?.success) toast.error("Có lỗi khi cập nhật lên hệ thống: " + (res?.error?.message || ""));
     }
 
     this.notify();

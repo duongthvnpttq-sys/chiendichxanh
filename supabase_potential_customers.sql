@@ -2,7 +2,7 @@
 
 -- 1. Đảm bảo bảng tồn tại (nếu chưa có thì tạo)
 CREATE TABLE IF NOT EXISTS public.vnpt_potential_customers (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     phone TEXT NOT NULL,
     address TEXT NOT NULL,
