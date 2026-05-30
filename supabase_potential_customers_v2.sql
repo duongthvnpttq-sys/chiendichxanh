@@ -1,6 +1,7 @@
 -- Script tạo mới bảng vnpt_potential_customers đồng bộ thông tin khách hàng tiềm năng lên Supabase
 
 -- Xóa bảng cũ nếu cần thiết (Cảnh báo: Sẽ xóa toàn bộ dữ liệu hiện tại trong bảng này)
+-- Hãy bỏ comment dòng DROP TABLE dưới đây nếu bạn muốn tạo lại từ đầu
 -- DROP TABLE IF EXISTS public.vnpt_potential_customers;
 
 CREATE TABLE IF NOT EXISTS public.vnpt_potential_customers (
@@ -19,6 +20,21 @@ CREATE TABLE IF NOT EXISTS public.vnpt_potential_customers (
     "createdAt" TIMESTAMPTZ DEFAULT NOW(),
     "createdBy" TEXT
 );
+
+-- Bắt buộc sửa lại kiểu dữ liệu của id thành TEXT phòng trường hợp bảng cũ đã được tạo bằng UUID
+ALTER TABLE public.vnpt_potential_customers ALTER COLUMN id DROP DEFAULT;
+ALTER TABLE public.vnpt_potential_customers ALTER COLUMN id TYPE TEXT USING id::TEXT;
+
+-- Bắt buộc thêm các cột mới vào phòng trường hợp bảng cũ thiếu
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'vnpt_potential_customers' AND column_name = 'currentProvider') THEN
+        ALTER TABLE public.vnpt_potential_customers ADD COLUMN "currentProvider" TEXT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'vnpt_potential_customers' AND column_name = 'paymentMethod') THEN
+        ALTER TABLE public.vnpt_potential_customers ADD COLUMN "paymentMethod" TEXT;
+    END IF;
+END $$;
 
 -- Bật RLS
 ALTER TABLE public.vnpt_potential_customers ENABLE ROW LEVEL SECURITY;

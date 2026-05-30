@@ -690,7 +690,10 @@ export const dataService = {
           const localOnly = localPotentials.filter(p => !dbIds.has(p.id) && !deletedIds.includes(p.id) && !p._isSynced && new Date(p.createdAt).getTime() > oneHourAgo);
           
           if (localOnly.length > 0) {
-             upsertToSupabase('vnpt_potential_customers', 'potential_customers', localOnly.map(p => { const { _isSynced, ...rest } = p; return rest; })).catch(console.error);
+             const res = await upsertToSupabase('vnpt_potential_customers', 'potential_customers', localOnly.map(p => { const { _isSynced, ...rest } = p; return rest; }));
+             if (res && !res.success) {
+               throw new Error(res.error?.message || "Lỗi cập nhật dữ liệu cục bộ lên đám mây");
+             }
           }
           
           // Merge
@@ -703,20 +706,58 @@ export const dataService = {
           lastPotentialsSync = Date.now();
           this.notify();
         }
-      }).catch(err => console.error("Potential customers sync fail:", err))
-        .finally(() => this._syncing.potentials = false);
+      }).catch(err => {
+        console.error("Potential customers sync fail:", err);
+        this._syncing.potentials = false;
+        throw err;
+      }).finally(() => this._syncing.potentials = false);
     }
     return potentials;
   },
 
   async forceSyncPotentials() {
-    this._syncing.potentials = false;
-    lastPotentialsSync = 0; // reset
+    this._syncing.potentials = true;
     try {
-      await this.getPotentialCustomers();
+      const dbPotentials = await fetchFromSupabase<PotentialCustomer[]>('vnpt_potential_customers', 'potential_customers', []);
+      if (dbPotentials) {
+        const deletedIds = getLocal<string[]>(STORAGE_KEYS.DELETED_POTENTIALS, []);
+        let workingDbPotentials = dbPotentials;
+        
+        if (deletedIds.length > 0) {
+          const stillInDb = workingDbPotentials.filter(p => deletedIds.includes(p.id));
+          if (stillInDb.length > 0) {
+            await deleteFromSupabase('vnpt_potential_customers', 'potential_customers', 'id', stillInDb.map(x => x.id));
+          }
+          workingDbPotentials = workingDbPotentials.filter(p => !deletedIds.includes(p.id));
+        }
+
+        const localPotentials = getLocal<any[]>(STORAGE_KEYS.POTENTIAL_CUSTOMERS, []);
+        const dbIds = new Set(workingDbPotentials.map(p => p.id));
+        
+        const oneHourAgo = Date.now() - 3600000;
+        const localOnly = localPotentials.filter(p => !dbIds.has(p.id) && !deletedIds.includes(p.id) && !p._isSynced && new Date(p.createdAt).getTime() > oneHourAgo);
+        
+        if (localOnly.length > 0) {
+           const res = await upsertToSupabase('vnpt_potential_customers', 'potential_customers', localOnly.map(p => { const { _isSynced, ...rest } = p; return rest; }));
+           if (res && !res.success) {
+             throw new Error(res.error?.message || "Lỗi cập nhật dữ liệu cục bộ lên đám mây");
+           }
+        }
+        
+        const merged = [...workingDbPotentials.map(p => ({ ...p, _isSynced: true }))];
+        for (const p of localOnly) {
+           merged.push(p);
+        }
+        
+        setLocal(STORAGE_KEYS.POTENTIAL_CUSTOMERS, merged);
+        lastPotentialsSync = Date.now();
+        this.notify();
+      }
     } catch(err: any) {
       console.error(err);
       throw err;
+    } finally {
+      this._syncing.potentials = false;
     }
   },
 
