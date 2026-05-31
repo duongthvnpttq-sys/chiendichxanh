@@ -164,11 +164,11 @@ export default function VNPTLayout({ children, userRole, userName, onNavigate, c
 
   const getNotificationIcon = (type: VNPTNotification['type']) => {
     switch (type) {
-      case 'SUCCESS': return <CheckCircle2 className="w-4 h-4 text-blue-500" />;
+      case 'SUCCESS': return <CheckCircle2 className="w-4 h-4 text-green-500" />;
       case 'WARNING': return <AlertTriangle className="w-4 h-4 text-orange-500" />;
-      case 'TASK': return <ClipboardList className="w-4 h-4 text-blue-500" />;
+      case 'TASK': return <ClipboardList className="w-4 h-4 text-green-500" />;
       case 'SYSTEM': return <Settings className="w-4 h-4 text-slate-500" />;
-      default: return <Info className="w-4 h-4 text-blue-500" />;
+      default: return <Info className="w-4 h-4 text-green-500" />;
     }
   };
 
@@ -376,7 +376,7 @@ export default function VNPTLayout({ children, userRole, userName, onNavigate, c
                     <Button 
                       variant="ghost" 
                       size="sm" 
-                      className="h-8 text-[10px] font-black uppercase text-slate-400 hover:text-blue-700"
+                      className="h-8 text-[10px] font-black uppercase text-slate-400 hover:text-green-700"
                       onClick={() => notificationService.markAllAsRead()}
                     >
                       <CheckCheck className="w-3 h-3 mr-1" />
@@ -401,7 +401,7 @@ export default function VNPTLayout({ children, userRole, userName, onNavigate, c
                           key={notif.id}
                           className={cn(
                             "group p-3 rounded-2xl transition-all duration-200 relative cursor-pointer",
-                            notif.read ? "hover:bg-slate-50" : "bg-blue-50/50 hover:bg-blue-50"
+                            notif.read ? "hover:bg-slate-50" : "bg-green-50/50 hover:bg-blue-50"
                           )}
                           onClick={() => {
                             notificationService.markAsRead(notif.id);
@@ -414,7 +414,7 @@ export default function VNPTLayout({ children, userRole, userName, onNavigate, c
                           <div className="flex gap-3">
                             <div className={cn(
                               "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border",
-                              notif.read ? "bg-white border-slate-100" : "bg-white border-blue-100 shadow-sm"
+                              notif.read ? "bg-white border-slate-100" : "bg-white border-green-100 shadow-sm"
                             )}>
                               {getNotificationIcon(notif.type)}
                             </div>
@@ -434,7 +434,7 @@ export default function VNPTLayout({ children, userRole, userName, onNavigate, c
                               {notif.message.length > 50 && (
                                 <button 
                                   onClick={(e) => toggleExpandNotif(e, notif.id)}
-                                  className="text-[9px] text-blue-600 hover:text-orange-600 font-black uppercase tracking-wider mt-1.5 transition-colors block"
+                                  className="text-[9px] text-green-600 hover:text-orange-600 font-black uppercase tracking-wider mt-1.5 transition-colors block"
                                 >
                                   {expandedNotifs.includes(notif.id) ? "Thu gọn" : "Xem thêm"}
                                 </button>
@@ -462,7 +462,7 @@ export default function VNPTLayout({ children, userRole, userName, onNavigate, c
                 </ScrollArea>
                 <DropdownMenuSeparator className="bg-slate-100" />
                 <DropdownMenuGroup>
-                  <DropdownMenuItem className="p-3 justify-center text-xs font-black uppercase text-blue-700 hover:text-blue-700 cursor-pointer rounded-2xl m-1 transition-colors">
+                  <DropdownMenuItem className="p-3 justify-center text-xs font-black uppercase text-blue-700 hover:text-green-700 cursor-pointer rounded-2xl m-1 transition-colors">
                     Xem tất cả nhật ký
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
@@ -505,7 +505,7 @@ export default function VNPTLayout({ children, userRole, userName, onNavigate, c
                 onClick={() => onNavigate(item.id)}
                 className={cn(
                   "flex flex-col items-center justify-center gap-1 flex-1 min-w-0 py-2 rounded-xl transition-all h-full relative",
-                  currentPage === item.id ? "text-blue-600 bg-blue-50/80" : "text-slate-400 hover:bg-slate-50"
+                  currentPage === item.id ? "text-green-600 bg-blue-50/80" : "text-slate-400 hover:bg-slate-50"
                 )}
               >
                 <item.icon className={cn("w-5 h-5 shrink-0", currentPage === item.id ? "text-brand-orange" : "text-slate-400")} />

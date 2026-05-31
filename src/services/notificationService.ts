@@ -18,6 +18,7 @@ const DELETED_KEY = 'vnpt_deleted_notifications';
 let lastSync = 0;
 let isSyncing = false;
 let channelInitialized = false;
+let notificationChannel: any = null;
 
 const getLocal = <T>(key: string, def: T): T => {
   const data = localStorage.getItem(key);
@@ -132,8 +133,8 @@ export const notificationService = {
     }
     
     // Subscribe to realtime broadcasts for instant cross-device notifications without needing a table
-    const channel = supabase.channel('vnpt_notifications_channel');
-    channel.on('broadcast', { event: 'new_notification' }, (payload) => {
+    notificationChannel = supabase.channel('vnpt_notifications_channel');
+    notificationChannel.on('broadcast', { event: 'new_notification' }, (payload) => {
       const incomingNotif = payload.payload as VNPTNotification;
       const user = authService.getCurrentUser();
       
@@ -149,7 +150,7 @@ export const notificationService = {
       }
     });
 
-    channel.on('broadcast', { event: 'update_notification' }, (payload) => {
+    notificationChannel.on('broadcast', { event: 'update_notification' }, (payload) => {
       const updateData = payload.payload;
       if (updateData && updateData.id) {
          const local = getLocal<VNPTNotification[]>(STORAGE_KEY, []);
@@ -162,7 +163,7 @@ export const notificationService = {
       }
     });
 
-    channel.on('broadcast', { event: 'delete_notification' }, (payload) => {
+    notificationChannel.on('broadcast', { event: 'delete_notification' }, (payload) => {
       const { id } = payload.payload;
       if (id) {
          const local = getLocal<VNPTNotification[]>(STORAGE_KEY, []);
@@ -173,7 +174,7 @@ export const notificationService = {
       }
     });
     
-    channel.subscribe();
+    notificationChannel.subscribe();
   },
 
   getNotifications(): VNPTNotification[] {
@@ -270,9 +271,8 @@ export const notificationService = {
     // Broadcast via realtime channel if this is a new local creation
     if (broadcast && notifications.length > 0) {
        try {
-         const channel = supabase.channel('vnpt_notifications_channel');
-         if (channel && channel.state === 'joined') {
-           channel.send({
+         if (notificationChannel && notificationChannel.state === 'joined') {
+           notificationChannel.send({
              type: 'broadcast',
              event: 'new_notification',
              payload: notifications[0]
@@ -304,9 +304,8 @@ export const notificationService = {
     this.saveNotifications(updated, false);
     
     try {
-      const channel = supabase.channel('vnpt_notifications_channel');
-      if (channel && channel.state === 'joined') {
-        channel.send({
+      if (notificationChannel && notificationChannel.state === 'joined') {
+        notificationChannel.send({
           type: 'broadcast',
           event: 'update_notification',
           payload: { id, read: true }
@@ -322,9 +321,8 @@ export const notificationService = {
     
     updated.forEach(n => {
       try {
-        const channel = supabase.channel('vnpt_notifications_channel');
-        if (channel && channel.state === 'joined') {
-          channel.send({
+        if (notificationChannel && notificationChannel.state === 'joined') {
+          notificationChannel.send({
              type: 'broadcast',
              event: 'update_notification',
              payload: { id: n.id, read: true }
@@ -346,9 +344,8 @@ export const notificationService = {
     deleteFromSupabase('vnpt_notifications', 'notifications', 'id', [id]).catch(() => {});
     
     try {
-      const channel = supabase.channel('vnpt_notifications_channel');
-      if (channel && channel.state === 'joined') {
-        channel.send({
+      if (notificationChannel && notificationChannel.state === 'joined') {
+        notificationChannel.send({
           type: 'broadcast',
           event: 'delete_notification',
           payload: { id }

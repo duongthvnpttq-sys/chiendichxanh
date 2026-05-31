@@ -248,12 +248,37 @@ export async function deleteFromSupabase(table1: string, table2: string, keyName
 }
 
 const listeners: Set<(data: any) => void> = new Set();
+let dataRealtimeInitialized = false;
 
 const INITIAL_CUSTOMERS: Customer[] = [];
 
 const INITIAL_ASSIGNMENTS: Assignment[] = [];
 
 export const dataService = {
+  setupDataRealtime() {
+    if (dataRealtimeInitialized) return;
+    dataRealtimeInitialized = true;
+    
+    // Hook into Postgres changes if enabled for assignments
+    supabase.channel('vnpt_assignments_sync_channel')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'vnpt_assignments' }, () => {
+          lastAssignmentsSync = 0; // force re-fetch
+          this.getAssignments();
+      })
+      .subscribe();
+
+    // Sync aggressively when task notification arrives
+    supabase.channel('vnpt_notifications_channel_data_hook')
+      .on('broadcast', { event: 'new_notification' }, (payload) => {
+          const incomingNotif = payload.payload;
+          if (incomingNotif && incomingNotif.type === 'TASK') {
+             lastAssignmentsSync = 0;
+             this.getAssignments();
+          }
+      })
+      .subscribe();
+  },
+
   // Flag to track active async syncs
   _syncing: { customers: false, assignments: false, batches: false, categories: false, potentials: false },
 
@@ -887,6 +912,7 @@ export const dataService = {
   },
 
   subscribe(callback: () => void) {
+    this.setupDataRealtime();
     listeners.add(callback);
     const interval = setInterval(() => {
       this.getCustomers();
@@ -901,6 +927,7 @@ export const dataService = {
 
   // Realtime Listeners
   subscribeToAssignments(callback: (assignments: Assignment[]) => void, campaignId?: string) {
+    this.setupDataRealtime();
     const handler = () => {
       this.getAssignments(campaignId).then(callback);
     };
