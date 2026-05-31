@@ -178,6 +178,20 @@ export default function UserAssignments({ mode = 'ASSIGN', onNavigate }: UserAss
     });
   };
 
+  const handleDeleteAssignments = async () => {
+    setConfirmDelete({
+      open: true,
+      title: 'Xóa nhiệm vụ',
+      description: `Bạn có chắc muốn xóa nhiệm vụ của ${selectedCustomers.length} khách hàng đã chọn? Việc này sẽ thu hồi nhiệm vụ từ nhân viên.`,
+      onConfirm: async () => {
+        await dataService.deleteAssignmentsBulk(selectedCustomers, activeBatch);
+        toast.success(`Đã thu hồi (xóa) nhiệm vụ cho ${selectedCustomers.length} khách hàng.`);
+        setSelectedCustomers([]);
+        setConfirmDelete(prev => ({ ...prev, open: false }));
+      }
+    });
+  };
+
   const handleDeleteIndividual = async (id: string, name: string) => {
     setConfirmDelete({
       open: true,
@@ -2143,7 +2157,12 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
                 </Button>
               )}
               {mode !== 'LIST' && (
-                <Button onClick={() => setAssignDialogOpen(true)} size="sm" className="bg-[#005ba1] hover:bg-blue-600 font-bold h-10 px-6 rounded-xl text-[11px] uppercase tracking-wide shadow-xl shadow-blue-500/20">Giao việc cho NV</Button>
+                <>
+                  <Button onClick={handleDeleteAssignments} variant="ghost" className="text-orange-400 hover:text-orange-500 hover:bg-orange-500/10 font-bold h-10 px-4 rounded-xl text-[11px] uppercase tracking-wide">
+                    <Trash2 className="w-4 h-4 mr-2" /> Xóa nhiệm vụ
+                  </Button>
+                  <Button onClick={() => setAssignDialogOpen(true)} size="sm" className="bg-[#005ba1] hover:bg-blue-600 font-bold h-10 px-6 rounded-xl text-[11px] uppercase tracking-wide shadow-xl shadow-blue-500/20">Giao việc cho NV</Button>
+                </>
               )}
             </div>
           </motion.div>

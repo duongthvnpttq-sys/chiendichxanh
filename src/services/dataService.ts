@@ -454,6 +454,20 @@ export const dataService = {
     return results;
   },
 
+  async deleteAssignmentsBulk(customerIds: string[], campaignId: string) {
+    const currentAssignments = await this.getAssignments();
+    const toDelete = currentAssignments.filter(a => customerIds.includes(a.customerId) && (campaignId === 'all' || a.campaignId === campaignId));
+    const toDeleteIds = toDelete.map(a => a.id).filter(Boolean) as string[];
+
+    const updatedAssignments = currentAssignments.filter(a => !toDeleteIds.includes(a.id as string));
+    setLocal(STORAGE_KEYS.ASSIGNMENTS, updatedAssignments);
+    
+    if (toDeleteIds.length > 0) {
+      await deleteFromSupabase('vnpt_assignments', 'assignments', 'id', toDeleteIds);
+    }
+    this.notify();
+  },
+
   async updateAssignment(id: string, updates: Partial<Assignment>) {
     const current = getLocal<Assignment[]>(STORAGE_KEYS.ASSIGNMENTS, []);
     let target: Assignment | null = null;
