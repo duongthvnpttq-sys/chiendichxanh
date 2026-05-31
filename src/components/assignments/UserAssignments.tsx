@@ -2261,7 +2261,7 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
                     placeholder="Tìm kiếm nhân sự..."
                     value={staffSearchTerm}
                     onChange={(e) => setStaffSearchTerm(e.target.value)}
-                    className="pl-9 h-10 rounded-xl"
+                    className="pl-10 h-10 rounded-xl"
                   />
                 </div>
                 <div className="max-h-64 overflow-y-auto custom-scrollbar space-y-2 p-2 bg-slate-50 rounded-2xl border border-slate-100">
@@ -3007,7 +3007,7 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
                   placeholder="Tìm kiếm ô địa bàn..."
                   value={territorySearchTerm}
                   onChange={(e) => setTerritorySearchTerm(e.target.value)}
-                  className="pl-9 h-10 rounded-xl"
+                  className="pl-10 h-10 rounded-xl"
                 />
               </div>
               <div className="max-h-80 overflow-y-auto custom-scrollbar pr-2 space-y-2">

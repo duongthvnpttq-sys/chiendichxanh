@@ -76,7 +76,7 @@ export default function UnitSettings() {
                   <Input 
                     value={settings.fullName}
                     onChange={(e) => handleChange("fullName", e.target.value)}
-                    className="pl-9 h-10 border-slate-200 rounded-xl text-sm focus-visible:ring-brand-orange focus-visible:border-brand-orange transition-all font-medium uppercase"
+                    className="pl-10 h-10 border-slate-200 rounded-xl text-sm focus-visible:ring-brand-orange focus-visible:border-brand-orange transition-all font-medium uppercase"
                     placeholder="Nhập tên đơn vị đầy đủ..."
                   />
                 </div>
@@ -89,7 +89,7 @@ export default function UnitSettings() {
                   <Input 
                     value={settings.shortName}
                     onChange={(e) => handleChange("shortName", e.target.value)}
-                    className="pl-9 h-10 border-slate-200 rounded-xl text-sm focus-visible:ring-brand-orange focus-visible:border-brand-orange transition-all font-medium uppercase"
+                    className="pl-10 h-10 border-slate-200 rounded-xl text-sm focus-visible:ring-brand-orange focus-visible:border-brand-orange transition-all font-medium uppercase"
                     placeholder="VD: VNPT Tuyên Quang"
                   />
                 </div>
@@ -102,7 +102,7 @@ export default function UnitSettings() {
                   <Input 
                     value={settings.leader}
                     onChange={(e) => handleChange("leader", e.target.value)}
-                    className="pl-9 h-10 border-slate-200 rounded-xl text-sm focus-visible:ring-brand-orange focus-visible:border-brand-orange transition-all font-medium"
+                    className="pl-10 h-10 border-slate-200 rounded-xl text-sm focus-visible:ring-brand-orange focus-visible:border-brand-orange transition-all font-medium"
                     placeholder="Nhập họ và tên lãnh đạo..."
                   />
                 </div>
@@ -115,7 +115,7 @@ export default function UnitSettings() {
                   <Input 
                     value={settings.address}
                     onChange={(e) => handleChange("address", e.target.value)}
-                    className="pl-9 h-10 border-slate-200 rounded-xl text-sm focus-visible:ring-brand-orange focus-visible:border-brand-orange transition-all font-medium"
+                    className="pl-10 h-10 border-slate-200 rounded-xl text-sm focus-visible:ring-brand-orange focus-visible:border-brand-orange transition-all font-medium"
                     placeholder="Nhập địa chỉ trụ sở..."
                   />
                 </div>
@@ -141,7 +141,7 @@ export default function UnitSettings() {
                   <Input 
                     value={settings.phone}
                     onChange={(e) => handleChange("phone", e.target.value)}
-                    className="pl-9 h-10 border-slate-200 rounded-xl text-sm focus-visible:ring-[#005BAA] focus-visible:border-[#005BAA] transition-all font-medium"
+                    className="pl-10 h-10 border-slate-200 rounded-xl text-sm focus-visible:ring-[#005BAA] focus-visible:border-[#005BAA] transition-all font-medium"
                     placeholder="VD: 024..."
                   />
                 </div>
@@ -154,7 +154,7 @@ export default function UnitSettings() {
                   <Input 
                     value={settings.email}
                     onChange={(e) => handleChange("email", e.target.value)}
-                    className="pl-9 h-10 border-slate-200 rounded-xl text-sm focus-visible:ring-[#005BAA] focus-visible:border-[#005BAA] transition-all font-medium"
+                    className="pl-10 h-10 border-slate-200 rounded-xl text-sm focus-visible:ring-[#005BAA] focus-visible:border-[#005BAA] transition-all font-medium"
                     placeholder="VD: email@vnpt.vn"
                   />
                 </div>
@@ -167,7 +167,7 @@ export default function UnitSettings() {
                   <Input 
                     value={settings.website}
                     onChange={(e) => handleChange("website", e.target.value)}
-                    className="pl-9 h-10 border-slate-200 rounded-xl text-sm focus-visible:ring-[#005BAA] focus-visible:border-[#005BAA] transition-all font-medium"
+                    className="pl-10 h-10 border-slate-200 rounded-xl text-sm focus-visible:ring-[#005BAA] focus-visible:border-[#005BAA] transition-all font-medium"
                     placeholder="VD: https://tuyenquang.vnpt.vn"
                   />
                 </div>

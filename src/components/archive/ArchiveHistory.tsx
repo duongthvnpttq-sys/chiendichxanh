@@ -69,7 +69,7 @@ export default function ArchiveHistory() {
               placeholder="Tìm khách hàng..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 bg-slate-50 border-none rounded-xl text-sm"
+              className="pl-10 bg-slate-50 border-none rounded-xl text-sm"
             />
           </div>
         </div>
