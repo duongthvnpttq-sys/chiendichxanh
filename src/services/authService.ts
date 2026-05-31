@@ -30,6 +30,15 @@ export interface UserProfile {
 
 const MOCK_USERS: UserProfile[] = [];
 
+const resolveRole = (rawRole?: string): UserRole => {
+  if (!rawRole) return 'staff';
+  const r = rawRole.toLowerCase();
+  if (r.includes('admin')) return 'admin';
+  if (r.includes('trưởng') || r.includes('đốc') || r.includes('manager') || r.includes('quản lý') || r.includes('phụ trách')) return 'manager';
+  if (r.includes('cộng tác') || r.includes('collaborator')) return 'collaborator';
+  return 'staff';
+};
+
 export const authService = {
   async login(rawEmailOrUsername: string, pass: string, rememberMe: boolean = true): Promise<UserProfile> {
     const emailOrUsername = rawEmailOrUsername.replace(/[\u200B-\u200D\uFEFF]/g, "").trim().toLowerCase();
@@ -81,15 +90,12 @@ export const authService = {
             }
           }
 
-          let role: UserRole = hrUser?.role?.toLowerCase() || 'staff';
+          let role: UserRole = 'staff';
           let displayName = authData.user.user_metadata?.name || authData.user.user_metadata?.fullName || emailToAuth.split('@')[0];
           let unit = authData.user.user_metadata?.unit || 'Chưa xếp bộ phận';
 
           if (!hrError && hrUser) {
-            if (hrUser.role === 'Admin' || hrUser.role === 'ADMIN' || hrUser.role === 'admin') role = 'admin';
-            else if (hrUser.role === 'Trưởng phòng' || hrUser.role === 'Tổ trưởng' || hrUser.role === 'MANAGER' || hrUser.role === 'manager' || hrUser.role === 'Giám đốc' || hrUser.role === 'Giám đốc quản trị điều hành') role = 'manager';
-            else if (hrUser.role === 'Cộng tác viên' || hrUser.role === 'Cộng tác viên liên kết' || hrUser.role === 'COLLABORATOR' || hrUser.role === 'collaborator') role = 'collaborator';
-            else if (hrUser.role === 'STAFF' || hrUser.role === 'staff') role = 'staff';
+            role = resolveRole(hrUser.role);
             displayName = hrUser.name;
             unit = hrUser.unit;
           }
@@ -138,11 +144,7 @@ export const authService = {
         
         if (!dbErr && dbUsers && dbUsers.length > 0) {
             const foundUser = dbUsers[0];
-            let role: UserRole = foundUser.role?.toLowerCase() || 'staff';
-            if (foundUser.role === 'Admin' || foundUser.role === 'ADMIN' || foundUser.role === 'admin') role = 'admin';
-            else if (foundUser.role === 'Trưởng phòng' || foundUser.role === 'Tổ trưởng' || foundUser.role === 'MANAGER' || foundUser.role === 'manager' || foundUser.role === 'Giám đốc' || foundUser.role === 'Giám đốc quản trị điều hành') role = 'manager';
-            else if (foundUser.role === 'Cộng tác viên' || foundUser.role === 'Cộng tác viên liên kết' || foundUser.role === 'COLLABORATOR' || foundUser.role === 'collaborator') role = 'collaborator';
-            else if (foundUser.role === 'STAFF' || foundUser.role === 'staff') role = 'staff';
+            const role: UserRole = resolveRole(foundUser.role);
 
             user = {
                 uid: foundUser.id,
@@ -170,11 +172,7 @@ export const authService = {
             );
             
             if (foundUser) {
-                let role: UserRole = foundUser.role?.toLowerCase() || 'staff';
-                if (foundUser.role === 'Admin' || foundUser.role === 'ADMIN' || foundUser.role === 'admin') role = 'admin';
-                else if (foundUser.role === 'Trưởng phòng' || foundUser.role === 'Tổ trưởng' || foundUser.role === 'MANAGER' || foundUser.role === 'manager' || foundUser.role === 'Giám đốc' || foundUser.role === 'Giám đốc quản trị điều hành') role = 'manager';
-                else if (foundUser.role === 'Cộng tác viên' || foundUser.role === 'Cộng tác viên liên kết' || foundUser.role === 'COLLABORATOR' || foundUser.role === 'collaborator') role = 'collaborator';
-                else if (foundUser.role === 'STAFF' || foundUser.role === 'staff') role = 'staff';
+                const role: UserRole = resolveRole(foundUser.role);
 
                 user = {
                     uid: foundUser.id,
@@ -353,11 +351,19 @@ export const authService = {
 
   getCurrentUser(): UserProfile | null {
     try {
+      let user = null;
       const sessionSaved = sessionStorage.getItem('vnpt_user');
-      if (sessionSaved) return JSON.parse(sessionSaved);
+      if (sessionSaved) user = JSON.parse(sessionSaved);
+      else {
+        const saved = localStorage.getItem('vnpt_user');
+        if (saved) user = JSON.parse(saved);
+      }
 
-      const saved = localStorage.getItem('vnpt_user');
-      return saved ? JSON.parse(saved) : null;
+      if (user && user.role) {
+         user.role = resolveRole(user.role);
+         return user;
+      }
+      return user;
     } catch (e) {
       console.error("Lỗi đọc vnpt_user:", e);
       return null;
