@@ -1,13 +1,13 @@
 -- Bảng lưu trữ thông tin Địa bàn quản lý
 CREATE TABLE IF NOT EXISTS public.vnpt_hr_territories (
-    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    id TEXT PRIMARY KEY,
     code VARCHAR(50) UNIQUE,
     name VARCHAR(255) NOT NULL,
     count VARCHAR(50), 
-    staffId UUID, 
+    "staffId" TEXT, 
     type VARCHAR(50), 
     
-    parent_id UUID,
+    parent_id TEXT,
     location_lat DECIMAL,
     location_lng DECIMAL,
     
@@ -20,8 +20,8 @@ CREATE TABLE IF NOT EXISTS public.vnpt_hr_territories (
 -- Bảng phân giao địa bàn cụ thể theo thời gian (nếu cần)
 CREATE TABLE IF NOT EXISTS public.vnpt_hr_territory_assignments (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    territory_id UUID REFERENCES public.vnpt_hr_territories(id) ON DELETE CASCADE NOT NULL,
-    staff_id UUID NOT NULL,
+    territory_id TEXT REFERENCES public.vnpt_hr_territories(id) ON DELETE CASCADE NOT NULL,
+    staff_id TEXT NOT NULL,
     role VARCHAR(50) DEFAULT 'PRIMARY',
     assigned_date DATE NOT NULL DEFAULT CURRENT_DATE,
     end_date DATE,
@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS public.vnpt_hr_territory_assignments (
 );
 
 -- Index để tối ưu truy vấn
-CREATE INDEX IF NOT EXISTS idx_vnpt_hr_territories_assignee ON public.vnpt_hr_territories(staffId);
+CREATE INDEX IF NOT EXISTS idx_vnpt_hr_territories_assignee ON public.vnpt_hr_territories("staffId");
 CREATE INDEX IF NOT EXISTS idx_vnpt_hr_territories_parent ON public.vnpt_hr_territories(parent_id);
 
 -- RLS (Row Level Security)
