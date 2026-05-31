@@ -353,7 +353,14 @@ export default function VNPTLayout({ children, userRole, userName, onNavigate, c
                     </motion.span>
                   )}
                 </AnimatePresence>
-                <Bell className="w-6 h-6 text-[#1c4b82] group-hover:scale-110 transition-transform duration-200 pointer-events-none" />
+                <motion.div
+                  animate={unreadCount > 0 ? {
+                    rotate: [0, -15, 15, -15, 15, 0],
+                    transition: { repeat: Infinity, repeatDelay: 1.5, duration: 0.5 }
+                  } : { rotate: 0 }}
+                >
+                  <Bell className="w-6 h-6 text-[#1c4b82] group-hover:scale-110 transition-transform duration-200 pointer-events-none" />
+                </motion.div>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-[calc(100vw-2rem)] sm:w-96 rounded-3xl p-2 shadow-2xl border-slate-100 z-50" align="end">
                 <DropdownMenuGroup>

@@ -70,22 +70,33 @@ export const notificationService = {
   playNotificationSound() {
     try {
       const audioCtx = getAudioContext();
-      const oscillator = audioCtx.createOscillator();
-      const gainNode = audioCtx.createGain();
       
-      oscillator.connect(gainNode);
-      gainNode.connect(audioCtx.destination);
+      const playBeep = (startTime: number) => {
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(880, startTime); // A5
+        oscillator.frequency.exponentialRampToValueAtTime(1760, startTime + 0.1); // A6
+        
+        gainNode.gain.setValueAtTime(0, startTime);
+        gainNode.gain.linearRampToValueAtTime(0.5, startTime + 0.05);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + 0.3);
+        
+        oscillator.start(startTime);
+        oscillator.stop(startTime + 0.3);
+      };
+
+      const now = audioCtx.currentTime;
+      // Play 3 beeps to make it very noticeable like an alarm/bell
+      playBeep(now);
+      playBeep(now + 0.15);
+      playBeep(now + 0.3);
+      playBeep(now + 0.6); // Extra beep to make sure it's heard
       
-      oscillator.type = 'sine';
-      oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // A5
-      oscillator.frequency.exponentialRampToValueAtTime(1760, audioCtx.currentTime + 0.1); // A6
-      
-      gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
-      gainNode.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.05);
-      gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
-      
-      oscillator.start(audioCtx.currentTime);
-      oscillator.stop(audioCtx.currentTime + 0.3);
     } catch (e) {
        console.error("Lỗi phát âm thanh:", e);
     }
@@ -94,12 +105,19 @@ export const notificationService = {
   showNativeNotification(title: string, body: string) {
     if (!("Notification" in window)) return;
     
+    const options: NotificationOptions = { 
+      body, 
+      icon: '/favicon.ico',
+      vibrate: [200, 100, 200, 100, 200, 100, 200], // Thêm rung (nếu thiết bị hỗ trợ)
+      requireInteraction: true // Yêu cầu người dùng tương tác để tắt
+    };
+
     if (Notification.permission === "granted") {
-      new Notification(title, { body, icon: '/favicon.ico' });
+      new Notification(title, options);
     } else if (Notification.permission !== "denied") {
       Notification.requestPermission().then(permission => {
         if (permission === "granted") {
-          new Notification(title, { body, icon: '/favicon.ico' });
+          new Notification(title, options);
         }
       });
     }
