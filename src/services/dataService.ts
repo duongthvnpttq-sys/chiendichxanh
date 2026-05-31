@@ -152,7 +152,7 @@ const setLocal = (key: string, data: any) => {
 };
 
 
-export async function fetchFromSupabase<T>(table1: string, table2: string, defaultValue: T): Promise<T> {
+export async function fetchFromSupabase<T>(table1: string, table2: string, defaultValue: T): Promise<T | null> {
   try {
     const PAGE_SIZE = 1000;
     const fetchAll = async (tableName: string) => {
@@ -187,7 +187,7 @@ export async function fetchFromSupabase<T>(table1: string, table2: string, defau
   } catch (err) {
     console.error(`Error querying Supabase for ${table1}:`, err);
   }
-  return defaultValue;
+  return null;
 }
 
 export async function upsertToSupabase(table1: string, table2: string, records: any[]) {

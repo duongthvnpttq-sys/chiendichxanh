@@ -1,12 +1,12 @@
 import { supabase } from "./dataService";
 
-async function fetchFromSupabase<T>(table: string, type: string, defaultVal: T): Promise<T> {
+async function fetchFromSupabase<T>(table: string, type: string, defaultVal: T): Promise<T | null> {
   const { data, error } = await supabase.from(table).select("*");
   if (error) {
      console.error("fetchFromSupabase error", error);
-     return defaultVal;
+     return null;
   }
-  return (data || defaultVal) as T;
+  return (data as T) || defaultVal;
 }
 
 async function upsertToSupabase(table: string, type: string, records: any[]) {
