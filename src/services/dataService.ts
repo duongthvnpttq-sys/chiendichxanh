@@ -345,18 +345,25 @@ export const dataService = {
   },
 
   async deleteCustomersBulk(ids: string[]) {
-    const current = await this.getCustomers();
+    this._syncing.customers = true;
+    this._syncing.assignments = true;
+    try {
+      await deleteFromSupabase('vnpt_customers', 'customers', 'id', ids);
+      await deleteFromSupabase('vnpt_assignments', 'assignments', 'customerId', ids);
+    } finally {
+      this._syncing.customers = false;
+      this._syncing.assignments = false;
+    }
+
+    const current = getLocal<Customer[]>(STORAGE_KEYS.CUSTOMERS, []);
     const idSet = new Set(ids);
     const updated = current.filter(c => !idSet.has(c.id));
     setLocal(STORAGE_KEYS.CUSTOMERS, updated);
     
     // Also cleanup assignments
-    const currentAssignments = await this.getAssignments();
+    const currentAssignments = getLocal<Assignment[]>(STORAGE_KEYS.ASSIGNMENTS, []);
     const updatedAssignments = currentAssignments.filter(a => !idSet.has(a.customerId));
     setLocal(STORAGE_KEYS.ASSIGNMENTS, updatedAssignments);
-
-    await deleteFromSupabase('vnpt_customers', 'customers', 'id', ids);
-    await deleteFromSupabase('vnpt_assignments', 'assignments', 'customerId', ids);
     
     this.notify();
   },
@@ -456,38 +463,46 @@ export const dataService = {
 
   async deleteAssignmentsBulk(customerIds: string[], campaignId: string) {
     const currentAssignments = await this.getAssignments();
-    const toDeleteIds = new Set<string>();
+    const toDeleteKeys = new Set<string>();
     
     currentAssignments.forEach(a => {
         if (customerIds.includes(a.customerId) && (campaignId === 'all' || a.campaignId === campaignId)) {
-            if (a.id) {
-                toDeleteIds.add(a.id);
-            }
+            toDeleteKeys.add(`${a.customerId}_${a.campaignId}`);
         }
     });
 
-    const updatedAssignments = currentAssignments.filter(a => !(a.id && toDeleteIds.has(a.id)));
-    setLocal(STORAGE_KEYS.ASSIGNMENTS, updatedAssignments);
-    
-    const idsToDelete = Array.from(toDeleteIds);
-    if (idsToDelete.length > 0) {
+    if (customerIds.length > 0) {
+      this._syncing.assignments = true;
       try {
         const CHUNK_SIZE = 500;
-        for (let i = 0; i < idsToDelete.length; i += CHUNK_SIZE) {
-            const chunk = idsToDelete.slice(i, i + CHUNK_SIZE);
-            const { error: err1 } = await supabase.from('vnpt_assignments').delete().in('id', chunk);
+        for (let i = 0; i < customerIds.length; i += CHUNK_SIZE) {
+            const chunk = customerIds.slice(i, i + CHUNK_SIZE);
+            let query1 = supabase.from('vnpt_assignments').delete().in('customerId', chunk);
+            if (campaignId && campaignId !== 'all') {
+                query1 = query1.eq('campaignId', campaignId);
+            }
+            const { error: err1 } = await query1;
             
             if (err1 && err1.code === '42P01') {
-                await supabase.from('assignments').delete().in('id', chunk);
+                let query2 = supabase.from('assignments').delete().in('customerId', chunk);
+                if (campaignId && campaignId !== 'all') {
+                    query2 = query2.eq('campaignId', campaignId);
+                }
+                await query2;
             } else if (err1) {
                 console.error("Lỗi xóa db:", err1);
             }
         }
       } catch (err) {
         console.error("Error bulk deleting assignments:", err);
+      } finally {
+        this._syncing.assignments = false;
       }
     }
     
+    const finalAssignments = getLocal<Assignment[]>(STORAGE_KEYS.ASSIGNMENTS, []);
+    const updatedAssignments = finalAssignments.filter(a => !toDeleteKeys.has(`${a.customerId}_${a.campaignId}`));
+    setLocal(STORAGE_KEYS.ASSIGNMENTS, updatedAssignments);
     this.notify();
   },
 
@@ -567,16 +582,23 @@ export const dataService = {
   },
 
   async deleteBatch(id: string) {
-    const current = await this.getBatches();
+    this._syncing.batches = true;
+    this._syncing.assignments = true;
+    try {
+      await deleteFromSupabase('vnpt_assignments', 'assignments', 'campaignId', [id]);
+      await deleteFromSupabase('vnpt_batches', 'batches', 'id', [id]);
+    } finally {
+      this._syncing.batches = false;
+      this._syncing.assignments = false;
+    }
+
+    const current = getLocal<ImplementationBatch[]>(STORAGE_KEYS.BATCHES, []);
     setLocal(STORAGE_KEYS.BATCHES, current.filter(b => b.id !== id));
     
     // Also cleanup assignments for this batch
-    const currentAssignments = await this.getAssignments();
+    const currentAssignments = getLocal<Assignment[]>(STORAGE_KEYS.ASSIGNMENTS, []);
     setLocal(STORAGE_KEYS.ASSIGNMENTS, currentAssignments.filter(a => a.campaignId !== id));
 
-    await deleteFromSupabase('vnpt_assignments', 'assignments', 'campaignId', [id]);
-    await deleteFromSupabase('vnpt_batches', 'batches', 'id', [id]);
-    
     this.notify();
   },
 
@@ -671,23 +693,15 @@ export const dataService = {
   },
 
   async deleteCategory(id: string) {
-    const current = await this.getCategories();
-    const batchIds = (await this.getBatches())
+    const current = getLocal<ProgramCategory[]>(STORAGE_KEYS.CATEGORIES, []);
+    const batchIds = (getLocal<ImplementationBatch[]>(STORAGE_KEYS.BATCHES, []))
       .filter(b => b.programId === id)
       .map(b => b.id);
+      
+    this._syncing.categories = true;
+    this._syncing.batches = true;
+    this._syncing.assignments = true;
     
-    setLocal(STORAGE_KEYS.CATEGORIES, current.filter(c => c.id !== id));
-    
-    // Cleanup batches associated with this category
-    const currentBatches = await this.getBatches();
-    setLocal(STORAGE_KEYS.BATCHES, currentBatches.filter(b => b.programId !== id));
-    
-    // Cleanup assignments for all batches in this category
-    if (batchIds.length > 0) {
-      const currentAssignments = await this.getAssignments();
-      setLocal(STORAGE_KEYS.ASSIGNMENTS, currentAssignments.filter(a => !batchIds.includes(a.campaignId)));
-    }
-
     try {
       if (batchIds.length > 0) {
         await deleteFromSupabase('vnpt_assignments', 'assignments', 'campaignId', batchIds);
@@ -696,8 +710,24 @@ export const dataService = {
       await deleteFromSupabase('vnpt_categories', 'categories', 'id', [id]);
     } catch (err: any) {
       console.warn("Supabase delete category error - continuing locally:", err.message);
+    } finally {
+      this._syncing.categories = false;
+      this._syncing.batches = false;
+      this._syncing.assignments = false;
     }
     
+    setLocal(STORAGE_KEYS.CATEGORIES, current.filter(c => c.id !== id));
+    
+    // Cleanup batches associated with this category
+    const currentBatches = getLocal<ImplementationBatch[]>(STORAGE_KEYS.BATCHES, []);
+    setLocal(STORAGE_KEYS.BATCHES, currentBatches.filter(b => b.programId !== id));
+    
+    // Cleanup assignments for all batches in this category
+    if (batchIds.length > 0) {
+      const currentAssignments = getLocal<Assignment[]>(STORAGE_KEYS.ASSIGNMENTS, []);
+      setLocal(STORAGE_KEYS.ASSIGNMENTS, currentAssignments.filter(a => !batchIds.includes(a.campaignId)));
+    }
+
     this.notify();
   },
 
