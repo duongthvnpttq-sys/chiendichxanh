@@ -1397,35 +1397,40 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
                      </button>
                      
                      <div className={cn(
-                        "absolute right-2 top-1/2 -translate-y-1/2 hidden group-hover:flex items-center gap-0.5",
+                        "absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity",
+                        activeCategory === cat.id ? "opacity-100" : ""
                       )}>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className={cn("w-6 h-6", activeCategory === cat.id ? "hover:bg-blue-200/50" : "hover:bg-slate-200/50")}
-                          onClick={(e) => { e.stopPropagation(); handleEditCategory(cat); }}
-                          title="Sửa chương trình"
-                        >
-                          <Pencil className="w-3 h-3 text-[#005BAA]" />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className={cn("w-6 h-6", activeCategory === cat.id ? "hover:bg-blue-200/50" : "hover:bg-slate-200/50")}
-                          onClick={(e) => { e.stopPropagation(); handleDeleteAllInCategory(cat.id, cat.name); }}
-                          title="Xóa tất tập khách hàng khỏi chương trình (Hết chiến dịch)"
-                        >
-                          <UserMinus className="w-3 h-3 text-orange-500" />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className={cn("w-6 h-6", activeCategory === cat.id ? "hover:bg-blue-200/50" : "hover:bg-slate-200/50")}
-                          onClick={(e) => { e.stopPropagation(); handleDeleteCategory(cat.id, cat.name); }}
-                          title="Xóa toàn bộ chương trình"
-                        >
-                          <Trash2 className="w-3 h-3 text-red-500" />
-                        </Button>
+                        {mode === 'LIST' && (
+                          <>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className={cn("w-6 h-6", activeCategory === cat.id ? "hover:bg-blue-200/50" : "hover:bg-slate-200/50")}
+                              onClick={(e) => { e.stopPropagation(); handleEditCategory(cat); }}
+                              title="Sửa chương trình"
+                            >
+                              <Pencil className="w-3 h-3 text-[#005BAA]" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className={cn("w-6 h-6", activeCategory === cat.id ? "hover:bg-blue-200/50" : "hover:bg-slate-200/50")}
+                              onClick={(e) => { e.stopPropagation(); handleDeleteAllInCategory(cat.id, cat.name); }}
+                              title="Xóa tất tập khách hàng khỏi chương trình (Hết chiến dịch)"
+                            >
+                              <UserMinus className="w-3 h-3 text-orange-500" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className={cn("w-6 h-6", activeCategory === cat.id ? "hover:bg-blue-200/50" : "hover:bg-slate-200/50")}
+                              onClick={(e) => { e.stopPropagation(); handleDeleteCategory(cat.id, cat.name); }}
+                              title="Xóa toàn bộ chương trình"
+                            >
+                              <Trash2 className="w-3 h-3 text-red-500" />
+                            </Button>
+                          </>
+                        )}
                       </div>
                    </div>
                  )})}
@@ -1472,7 +1477,7 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
                    </SelectContent>
                  </Select>
 
-                 {activeBatch !== 'all' && (
+                 {mode === 'LIST' && activeBatch !== 'all' && (
                     <>
                       <Button 
                         variant="outline" 
@@ -1572,23 +1577,27 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
                
                {selectedBatch && (
                  <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 relative group">
-                    <div className={cn(
-                      "absolute top-2 right-2 flex items-center gap-1 transition-all",
-                      (mode === 'LIST' && isManageMode) ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-                    )}>
-                      <button 
-                        onClick={() => handleEditBatch(selectedBatch)}
-                        className="p-1.5 bg-white shadow-sm border border-slate-100 rounded-lg text-slate-400 hover:text-blue-500 hover:border-blue-100 transition-all font-bold"
-                      >
-                        <History className="w-3.5 h-3.5" />
-                      </button>
-                      <button 
-                        onClick={() => handleDeleteBatch(selectedBatch.id, selectedBatch.name)}
-                        className="p-1.5 bg-white shadow-sm border border-slate-100 rounded-lg text-slate-400 hover:text-red-500 hover:border-red-100 transition-all font-bold"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
+                    {mode === 'LIST' && (
+                      <div className={cn(
+                        "absolute top-2 right-2 flex items-center gap-1 transition-all",
+                        isManageMode ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                      )}>
+                        <button 
+                          onClick={() => handleEditBatch(selectedBatch)}
+                          className="p-1.5 bg-white shadow-sm border border-slate-100 rounded-lg text-slate-400 hover:text-blue-500 hover:border-blue-100 transition-all font-bold"
+                          title="Sửa đợt"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteBatch(selectedBatch.id, selectedBatch.name)}
+                          className="p-1.5 bg-white shadow-sm border border-slate-100 rounded-lg text-slate-400 hover:text-red-500 hover:border-red-100 transition-all font-bold"
+                          title="Xóa đợt"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )}
                     <p className="text-[9px] font-black uppercase text-slate-400 mb-2">Thông tin đợt</p>
                     <div className="space-y-1">
                       <div className="flex justify-between text-[10px] font-bold">
