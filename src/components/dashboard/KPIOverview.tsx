@@ -213,11 +213,11 @@ export default function KPIOverview() {
 
       {/* Primary KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
-        <Card className="rounded-xl shadow-sm border-none shadow-slate-200/50 bg-white overflow-hidden relative group">
+        <Card className="rounded-xl shadow-sm border border-slate-100 shadow-sm shadow-slate-200/50 bg-white overflow-hidden relative group">
           <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
               <DollarSign className="w-24 h-24 text-blue-600 transform translate-x-4 -translate-y-4" />
           </div>
-          <CardContent className="p-4 relative z-10 flex flex-col h-full bg-gradient-to-br from-blue-50/50 to-transparent">
+          <CardContent className="p-4 relative z-10 flex flex-col h-full bg-gradient-to-br from-blue-50 to-blue-100/20">
              <div className="flex justify-between items-start mb-3">
                 <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center shrink-0 shadow-inner">
                    <DollarSign className="w-5 h-5 text-blue-600" />
@@ -234,11 +234,11 @@ export default function KPIOverview() {
           </CardContent>
         </Card>
 
-        <Card className="rounded-xl shadow-sm border-none shadow-slate-200/50 bg-white overflow-hidden relative group">
+        <Card className="rounded-xl shadow-sm border border-slate-100 shadow-sm shadow-slate-200/50 bg-white overflow-hidden relative group">
           <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
               <Users className="w-24 h-24 text-indigo-600 transform translate-x-4 -translate-y-4" />
           </div>
-          <CardContent className="p-4 relative z-10 flex flex-col h-full bg-gradient-to-br from-indigo-50/50 to-transparent">
+          <CardContent className="p-4 relative z-10 flex flex-col h-full bg-gradient-to-br from-indigo-50 to-indigo-100/20">
              <div className="flex justify-between items-start mb-3">
                 <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center shrink-0 shadow-inner">
                    <Users className="w-5 h-5 text-indigo-600" />
@@ -255,11 +255,11 @@ export default function KPIOverview() {
           </CardContent>
         </Card>
 
-        <Card className="rounded-xl shadow-sm border-none shadow-slate-200/50 bg-white overflow-hidden relative group">
+        <Card className="rounded-xl shadow-sm border border-slate-100 shadow-sm shadow-slate-200/50 bg-white overflow-hidden relative group">
           <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
               <Briefcase className="w-24 h-24 text-amber-600 transform translate-x-4 -translate-y-4" />
           </div>
-          <CardContent className="p-4 relative z-10 flex flex-col h-full bg-gradient-to-br from-amber-50/50 to-transparent">
+          <CardContent className="p-4 relative z-10 flex flex-col h-full bg-gradient-to-br from-amber-50 to-amber-100/20">
              <div className="flex justify-between items-start mb-3">
                 <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center shrink-0 shadow-inner">
                    <Briefcase className="w-5 h-5 text-amber-600" />
@@ -279,11 +279,11 @@ export default function KPIOverview() {
           </CardContent>
         </Card>
 
-        <Card className="rounded-xl shadow-sm border-none shadow-slate-200/50 bg-white overflow-hidden relative group">
+        <Card className="rounded-xl shadow-sm border border-slate-100 shadow-sm shadow-slate-200/50 bg-white overflow-hidden relative group">
           <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
               <Target className="w-24 h-24 text-emerald-600 transform translate-x-4 -translate-y-4" />
           </div>
-          <CardContent className="p-4 relative z-10 flex flex-col h-full bg-gradient-to-br from-emerald-50/50 to-transparent">
+          <CardContent className="p-4 relative z-10 flex flex-col h-full bg-gradient-to-br from-emerald-50 to-emerald-100/20">
              <div className="flex justify-between items-start mb-3">
                 <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0 shadow-inner">
                    <CheckCircle2 className="w-5 h-5 text-emerald-600" />
