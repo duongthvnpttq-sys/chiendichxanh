@@ -173,7 +173,7 @@ export default function UserManagement() {
       { name: 'Upload hình ảnh/GPS', keys: ['admin', 'manager', 'staff', 'collaborator'] },
       { name: 'Xem khách hàng của tổ', keys: ['admin', 'manager'] },
       { name: 'Phê duyệt kết quả', keys: ['admin', 'manager'] },
-      { name: 'Theo dõi tiềm năng', keys: ['admin', 'manager', 'staff', 'collaborator'] }
+      { name: 'Thu thập khách hàng tiềm năng', keys: ['admin', 'manager', 'staff', 'collaborator'] }
     ];
   });
 
@@ -1161,7 +1161,8 @@ export default function UserManagement() {
                     <CardTitle className="text-xs font-black uppercase tracking-wider text-slate-800">Ma trận phân quyền chi tiết</CardTitle>
                     <Button className="h-8 rounded-lg bg-[#005BAA] font-bold text-[10px] uppercase" onClick={() => {
                        localStorage.setItem('vnpt_permission_matrix', JSON.stringify(matrix));
-                       toast.success("Đã cấu hình quyền thành công");
+                       toast.success("Đã cấu hình quyền thành công. Hệ thống sẽ tải lại...");
+                       setTimeout(() => window.location.reload(), 1500);
                     }}>Lưu thay đổi</Button>
                  </CardHeader>
                  <CardContent className="p-0 flex-1 min-h-0 flex flex-col overflow-hidden">
