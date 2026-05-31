@@ -17,7 +17,8 @@ import {
   Info,
   AlertTriangle,
   CheckCircle2,
-  Trash2
+  Trash2,
+  Trophy
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -176,6 +177,7 @@ export default function VNPTLayout({ children, userRole, userName, onNavigate, c
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3, roles: currentPermissions.dashboard },
+    { id: 'rankings', label: 'Xếp hạng Real-time', icon: Trophy, roles: currentPermissions.rankings || currentPermissions.dashboard },
     { id: 'users', label: 'Quản lý nhân sự', icon: Users, roles: currentPermissions.users },
     { id: 'assignments', label: 'Giao nhiệm vụ', icon: ClipboardList, roles: currentPermissions.assignments },
     { id: 'archive', label: 'Lưu trữ & Lịch sử', icon: Clock, roles: currentPermissions.archive },
