@@ -18,7 +18,7 @@ async function sha256(message: string): Promise<string> {
   }
 }
 
-export type UserRole = "ADMIN" | "MANAGER" | "STAFF" | "COLLABORATOR";
+export type UserRole = string;
 
 export interface UserProfile {
   uid: string;
@@ -81,14 +81,15 @@ export const authService = {
             }
           }
 
-          let role: UserRole = 'STAFF';
+          let role: UserRole = hrUser?.role?.toLowerCase() || 'staff';
           let displayName = authData.user.user_metadata?.name || authData.user.user_metadata?.fullName || emailToAuth.split('@')[0];
           let unit = authData.user.user_metadata?.unit || 'Chưa xếp bộ phận';
 
           if (!hrError && hrUser) {
-            if (hrUser.role === 'Admin' || hrUser.role === 'ADMIN') role = 'ADMIN';
-            else if (hrUser.role === 'Trưởng phòng' || hrUser.role === 'Tổ trưởng' || hrUser.role === 'MANAGER' || hrUser.role === 'Giám đốc' || hrUser.role === 'Giám đốc quản trị điều hành') role = 'MANAGER';
-            else if (hrUser.role === 'Cộng tác viên' || hrUser.role === 'Cộng tác viên liên kết' || hrUser.role === 'COLLABORATOR') role = 'COLLABORATOR';
+            if (hrUser.role === 'Admin' || hrUser.role === 'ADMIN' || hrUser.role === 'admin') role = 'admin';
+            else if (hrUser.role === 'Trưởng phòng' || hrUser.role === 'Tổ trưởng' || hrUser.role === 'MANAGER' || hrUser.role === 'manager' || hrUser.role === 'Giám đốc' || hrUser.role === 'Giám đốc quản trị điều hành') role = 'manager';
+            else if (hrUser.role === 'Cộng tác viên' || hrUser.role === 'Cộng tác viên liên kết' || hrUser.role === 'COLLABORATOR' || hrUser.role === 'collaborator') role = 'collaborator';
+            else if (hrUser.role === 'STAFF' || hrUser.role === 'staff') role = 'staff';
             displayName = hrUser.name;
             unit = hrUser.unit;
           }
@@ -137,10 +138,11 @@ export const authService = {
         
         if (!dbErr && dbUsers && dbUsers.length > 0) {
             const foundUser = dbUsers[0];
-            let role: UserRole = 'STAFF';
-            if (foundUser.role === 'Admin' || foundUser.role === 'ADMIN') role = 'ADMIN';
-            else if (foundUser.role === 'Trưởng phòng' || foundUser.role === 'Tổ trưởng' || foundUser.role === 'MANAGER' || foundUser.role === 'Giám đốc' || foundUser.role === 'Giám đốc quản trị điều hành') role = 'MANAGER';
-            else if (foundUser.role === 'Cộng tác viên' || foundUser.role === 'Cộng tác viên liên kết' || foundUser.role === 'COLLABORATOR') role = 'COLLABORATOR';
+            let role: UserRole = foundUser.role?.toLowerCase() || 'staff';
+            if (foundUser.role === 'Admin' || foundUser.role === 'ADMIN' || foundUser.role === 'admin') role = 'admin';
+            else if (foundUser.role === 'Trưởng phòng' || foundUser.role === 'Tổ trưởng' || foundUser.role === 'MANAGER' || foundUser.role === 'manager' || foundUser.role === 'Giám đốc' || foundUser.role === 'Giám đốc quản trị điều hành') role = 'manager';
+            else if (foundUser.role === 'Cộng tác viên' || foundUser.role === 'Cộng tác viên liên kết' || foundUser.role === 'COLLABORATOR' || foundUser.role === 'collaborator') role = 'collaborator';
+            else if (foundUser.role === 'STAFF' || foundUser.role === 'staff') role = 'staff';
 
             user = {
                 uid: foundUser.id,
@@ -168,10 +170,11 @@ export const authService = {
             );
             
             if (foundUser) {
-                let role: UserRole = 'STAFF';
-                if (foundUser.role === 'Admin' || foundUser.role === 'ADMIN') role = 'ADMIN';
-                else if (foundUser.role === 'Trưởng phòng' || foundUser.role === 'Tổ trưởng' || foundUser.role === 'MANAGER' || foundUser.role === 'Giám đốc' || foundUser.role === 'Giám đốc quản trị điều hành') role = 'MANAGER';
-                else if (foundUser.role === 'Cộng tác viên' || foundUser.role === 'Cộng tác viên liên kết' || foundUser.role === 'COLLABORATOR') role = 'COLLABORATOR';
+                let role: UserRole = foundUser.role?.toLowerCase() || 'staff';
+                if (foundUser.role === 'Admin' || foundUser.role === 'ADMIN' || foundUser.role === 'admin') role = 'admin';
+                else if (foundUser.role === 'Trưởng phòng' || foundUser.role === 'Tổ trưởng' || foundUser.role === 'MANAGER' || foundUser.role === 'manager' || foundUser.role === 'Giám đốc' || foundUser.role === 'Giám đốc quản trị điều hành') role = 'manager';
+                else if (foundUser.role === 'Cộng tác viên' || foundUser.role === 'Cộng tác viên liên kết' || foundUser.role === 'COLLABORATOR' || foundUser.role === 'collaborator') role = 'collaborator';
+                else if (foundUser.role === 'STAFF' || foundUser.role === 'staff') role = 'staff';
 
                 user = {
                     uid: foundUser.id,

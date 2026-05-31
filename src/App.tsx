@@ -35,7 +35,7 @@ export default function App() {
         const savedUser = authService.getCurrentUser();
         if (savedUser) {
           setUser(savedUser);
-          if (savedUser.role === 'STAFF' || savedUser.role === 'COLLABORATOR') {
+          if (savedUser.role !== 'admin' && savedUser.role !== 'manager') {
               if (currentPage === 'users' || currentPage === 'settings') {
                   setCurrentPage('dashboard');
               }
@@ -61,7 +61,7 @@ export default function App() {
     try {
       const loggedInUser = await authService.login(email, password, rememberMe);
       setUser(loggedInUser);
-      if (loggedInUser.role === 'STAFF' || loggedInUser.role === 'COLLABORATOR') {
+      if (loggedInUser.role !== 'admin' && loggedInUser.role !== 'manager') {
          setCurrentPage('dashboard');
       }
       toast.success("Đăng nhập thành công qua hệ thống xác thực!");

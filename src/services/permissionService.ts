@@ -5,13 +5,13 @@ export const getRoutePermissions = (): Record<string, string[]> => {
            const matrix = JSON.parse(saved);
            const getKeys = (namePart: string) => {
                const m = matrix.find((m: any) => m.name.toLowerCase().includes(namePart.toLowerCase()));
-               return m ? m.keys.map((k: string) => k.toUpperCase()) : ['ADMIN'];
+               return m ? m.keys : ['admin'];
            };
-           // Always inject ADMIN for critical modules
-           const injectAdmin = (roles: string[]) => roles.includes('ADMIN') ? roles : [...roles, 'ADMIN'];
+           // Always inject 'admin' for critical modules
+           const injectAdmin = (roles: string[]) => roles.includes('admin') ? roles : [...roles, 'admin'];
            
            return {
-              dashboard: ['ADMIN', 'MANAGER', 'STAFF', 'COLLABORATOR'],
+              dashboard: ['admin', 'manager', 'staff', 'collaborator'],
               users: injectAdmin(getKeys('Nhân sự')),
               assignments: injectAdmin(getKeys('Giao khách hàng')),
               archive: injectAdmin(getKeys('báo cáo')),
@@ -24,13 +24,14 @@ export const getRoutePermissions = (): Record<string, string[]> => {
     } catch {}
     
     return {
-      dashboard: ['ADMIN', 'MANAGER', 'STAFF', 'COLLABORATOR'],
-      users: ['ADMIN', 'MANAGER'],
-      assignments: ['ADMIN', 'MANAGER'],
-      archive: ['ADMIN', 'MANAGER'],
-      tasks: ['STAFF', 'COLLABORATOR', 'ADMIN', 'MANAGER'], 
-      customers: ['ADMIN', 'MANAGER'],
-      potential: ['ADMIN', 'MANAGER', 'STAFF', 'COLLABORATOR'],
-      settings: ['ADMIN']
+      dashboard: ['admin', 'manager', 'staff', 'collaborator'],
+      users: ['admin', 'manager'],
+      assignments: ['admin', 'manager'],
+      archive: ['admin', 'manager'],
+      tasks: ['staff', 'collaborator', 'admin', 'manager'], 
+      customers: ['admin', 'manager'],
+      potential: ['admin', 'manager', 'staff', 'collaborator'],
+      settings: ['admin']
     };
 };
+
