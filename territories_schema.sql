@@ -5,49 +5,17 @@ CREATE TABLE IF NOT EXISTS public.vnpt_hr_territories (
     count VARCHAR(50)
 );
 
--- Thêm các cột nếu chưa có (để tránh lỗi thiếu cột do bảng đã tồn tại từ trước)
-DO $$ 
-BEGIN 
-    BEGIN
-        ALTER TABLE public.vnpt_hr_territories ADD COLUMN code VARCHAR(50) UNIQUE;
-    EXCEPTION WHEN duplicate_column THEN END;
-    
-    BEGIN
-        ALTER TABLE public.vnpt_hr_territories ADD COLUMN "staffId" TEXT;
-    EXCEPTION WHEN duplicate_column THEN END;
-    
-    BEGIN
-        ALTER TABLE public.vnpt_hr_territories ADD COLUMN type VARCHAR(50);
-    EXCEPTION WHEN duplicate_column THEN END;
-    
-    BEGIN
-        ALTER TABLE public.vnpt_hr_territories ADD COLUMN parent_id TEXT;
-    EXCEPTION WHEN duplicate_column THEN END;
-    
-    BEGIN
-        ALTER TABLE public.vnpt_hr_territories ADD COLUMN location_lat DECIMAL;
-    EXCEPTION WHEN duplicate_column THEN END;
-    
-    BEGIN
-        ALTER TABLE public.vnpt_hr_territories ADD COLUMN location_lng DECIMAL;
-    EXCEPTION WHEN duplicate_column THEN END;
-    
-    BEGIN
-        ALTER TABLE public.vnpt_hr_territories ADD COLUMN status VARCHAR(20) DEFAULT 'ACTIVE';
-    EXCEPTION WHEN duplicate_column THEN END;
-    
-    BEGIN
-        ALTER TABLE public.vnpt_hr_territories ADD COLUMN notes TEXT;
-    EXCEPTION WHEN duplicate_column THEN END;
-    
-    BEGIN
-        ALTER TABLE public.vnpt_hr_territories ADD COLUMN created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL;
-    EXCEPTION WHEN duplicate_column THEN END;
-    
-    BEGIN
-        ALTER TABLE public.vnpt_hr_territories ADD COLUMN updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL;
-    EXCEPTION WHEN duplicate_column THEN END;
-END $$;
+-- Thêm các cột nếu chưa có bằng cú pháp chuẩn của Postgres
+ALTER TABLE public.vnpt_hr_territories ADD COLUMN IF NOT EXISTS code VARCHAR(50) UNIQUE;
+ALTER TABLE public.vnpt_hr_territories ADD COLUMN IF NOT EXISTS "staffId" TEXT;
+ALTER TABLE public.vnpt_hr_territories ADD COLUMN IF NOT EXISTS type VARCHAR(50);
+ALTER TABLE public.vnpt_hr_territories ADD COLUMN IF NOT EXISTS parent_id TEXT;
+ALTER TABLE public.vnpt_hr_territories ADD COLUMN IF NOT EXISTS location_lat DECIMAL;
+ALTER TABLE public.vnpt_hr_territories ADD COLUMN IF NOT EXISTS location_lng DECIMAL;
+ALTER TABLE public.vnpt_hr_territories ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'ACTIVE';
+ALTER TABLE public.vnpt_hr_territories ADD COLUMN IF NOT EXISTS notes TEXT;
+ALTER TABLE public.vnpt_hr_territories ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL;
+ALTER TABLE public.vnpt_hr_territories ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL;
 
 -- Bảng phân giao địa bàn cụ thể theo thời gian (nếu cần)
 CREATE TABLE IF NOT EXISTS public.vnpt_hr_territory_assignments (

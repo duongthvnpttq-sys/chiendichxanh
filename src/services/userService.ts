@@ -42,7 +42,7 @@ export interface Territory {
   id: string;
   name: string;
   count: string;
-  staffId?: string;
+  staffId?: string | null;
 }
 
 export interface UnitSettings {
@@ -343,8 +343,8 @@ export const userService = {
         }
       } else if (dbTerritories && dbTerritories.length === 0) {
         if (localTerritories.length > 0) {
-          setLocal(STORAGE_KEYS.TERRITORIES, []);
-          this.notify();
+          // Instead of clearing local, we push local to DB to initialize it
+          upsertToSupabase('vnpt_hr_territories', 'hr_territories', localTerritories).catch(console.error);
         }
       }
     } catch (err) {
@@ -398,12 +398,12 @@ export const userService = {
     }
   },
 
-  assignTerritory(territoryId: string, staffId: string | undefined) {
+  assignTerritory(territoryId: string, staffId: string | undefined | null) {
     const territories = this.getTerritories();
     let target: Territory | null = null;
     const updated = territories.map(t => {
       if (t.id === territoryId) {
-        target = { ...t, staffId };
+        target = { ...t, staffId: staffId || null }; // explicitly set null to clear in Supabase
         return target;
       }
       return t;
