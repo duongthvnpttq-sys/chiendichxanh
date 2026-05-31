@@ -1,21 +1,53 @@
--- Bảng lưu trữ thông tin Địa bàn quản lý
+-- Cập nhật cấu trúc bảng lưu trữ thông tin Địa bàn quản lý nếu đã tồn tại
 CREATE TABLE IF NOT EXISTS public.vnpt_hr_territories (
     id TEXT PRIMARY KEY,
-    code VARCHAR(50) UNIQUE,
     name VARCHAR(255) NOT NULL,
-    count VARCHAR(50), 
-    "staffId" TEXT, 
-    type VARCHAR(50), 
-    
-    parent_id TEXT,
-    location_lat DECIMAL,
-    location_lng DECIMAL,
-    
-    status VARCHAR(20) DEFAULT 'ACTIVE',
-    notes TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+    count VARCHAR(50)
 );
+
+-- Thêm các cột nếu chưa có (để tránh lỗi thiếu cột do bảng đã tồn tại từ trước)
+DO $$ 
+BEGIN 
+    BEGIN
+        ALTER TABLE public.vnpt_hr_territories ADD COLUMN code VARCHAR(50) UNIQUE;
+    EXCEPTION WHEN duplicate_column THEN END;
+    
+    BEGIN
+        ALTER TABLE public.vnpt_hr_territories ADD COLUMN "staffId" TEXT;
+    EXCEPTION WHEN duplicate_column THEN END;
+    
+    BEGIN
+        ALTER TABLE public.vnpt_hr_territories ADD COLUMN type VARCHAR(50);
+    EXCEPTION WHEN duplicate_column THEN END;
+    
+    BEGIN
+        ALTER TABLE public.vnpt_hr_territories ADD COLUMN parent_id TEXT;
+    EXCEPTION WHEN duplicate_column THEN END;
+    
+    BEGIN
+        ALTER TABLE public.vnpt_hr_territories ADD COLUMN location_lat DECIMAL;
+    EXCEPTION WHEN duplicate_column THEN END;
+    
+    BEGIN
+        ALTER TABLE public.vnpt_hr_territories ADD COLUMN location_lng DECIMAL;
+    EXCEPTION WHEN duplicate_column THEN END;
+    
+    BEGIN
+        ALTER TABLE public.vnpt_hr_territories ADD COLUMN status VARCHAR(20) DEFAULT 'ACTIVE';
+    EXCEPTION WHEN duplicate_column THEN END;
+    
+    BEGIN
+        ALTER TABLE public.vnpt_hr_territories ADD COLUMN notes TEXT;
+    EXCEPTION WHEN duplicate_column THEN END;
+    
+    BEGIN
+        ALTER TABLE public.vnpt_hr_territories ADD COLUMN created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL;
+    EXCEPTION WHEN duplicate_column THEN END;
+    
+    BEGIN
+        ALTER TABLE public.vnpt_hr_territories ADD COLUMN updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL;
+    EXCEPTION WHEN duplicate_column THEN END;
+END $$;
 
 -- Bảng phân giao địa bàn cụ thể theo thời gian (nếu cần)
 CREATE TABLE IF NOT EXISTS public.vnpt_hr_territory_assignments (
