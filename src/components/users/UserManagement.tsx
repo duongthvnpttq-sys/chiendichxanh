@@ -162,8 +162,7 @@ export default function UserManagement() {
   const [activeTerritoryId, setActiveTerritoryId] = React.useState<string | undefined>(undefined);
 
   const [matrix, setMatrix] = React.useState(() => {
-    const saved = localStorage.getItem('vnpt_permission_matrix');
-    return saved ? JSON.parse(saved) : [
+    const defaultMatrix = [
       { name: 'Quản trị nhân sự', keys: ['admin', 'manager'] },
       { name: 'Cấu hình chương trình', keys: ['admin'] },
       { name: 'Cài đặt đơn vị', keys: ['admin'] },
@@ -175,6 +174,24 @@ export default function UserManagement() {
       { name: 'Phê duyệt kết quả', keys: ['admin', 'manager'] },
       { name: 'Thu thập khách hàng tiềm năng', keys: ['admin', 'manager', 'staff', 'collaborator'] }
     ];
+    
+    const saved = localStorage.getItem('vnpt_permission_matrix');
+    if (saved) {
+      try {
+         const parsedMatrix = JSON.parse(saved);
+         // Merge missing items from defaultMatrix to parsedMatrix
+         const merged = [...parsedMatrix];
+         defaultMatrix.forEach(defItem => {
+            if (!merged.find(m => m.name === defItem.name)) {
+               merged.push(defItem);
+            }
+         });
+         return merged;
+      } catch (e) {
+         return defaultMatrix;
+      }
+    }
+    return defaultMatrix;
   });
 
   const togglePermission = (rowIdx: number, roleKey: string) => {
