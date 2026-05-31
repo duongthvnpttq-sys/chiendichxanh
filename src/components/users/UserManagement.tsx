@@ -166,12 +166,14 @@ export default function UserManagement() {
     return saved ? JSON.parse(saved) : [
       { name: 'Quản trị nhân sự', keys: ['admin', 'manager'] },
       { name: 'Cấu hình chương trình', keys: ['admin'] },
+      { name: 'Cài đặt đơn vị', keys: ['admin'] },
       { name: 'Giao khách hàng (Assign)', keys: ['admin', 'manager'] },
       { name: 'Xuất báo cáo Excel', keys: ['admin', 'manager'] },
       { name: 'Cập nhật kết quả CSKH', keys: ['admin', 'manager', 'staff', 'collaborator'] },
       { name: 'Upload hình ảnh/GPS', keys: ['admin', 'manager', 'staff', 'collaborator'] },
       { name: 'Xem khách hàng của tổ', keys: ['admin', 'manager'] },
       { name: 'Phê duyệt kết quả', keys: ['admin', 'manager'] },
+      { name: 'Theo dõi tiềm năng', keys: ['admin', 'manager', 'staff', 'collaborator'] }
     ];
   });
 
@@ -899,10 +901,10 @@ export default function UserManagement() {
           </DialogContent>
         </Dialog>
 
-        <TabsList className="bg-slate-100 p-1 rounded-2xl w-fit mb-6 overflow-x-auto max-w-full">
-          <TabsTrigger value="list" className="rounded-xl font-bold px-6 py-2 data-[state=active]:bg-white data-[state=active]:text-[#005BAA] data-[state=active]:shadow-sm">Danh sách nhân sự ({filteredUsers.length})</TabsTrigger>
-          <TabsTrigger value="roles" className="rounded-xl font-bold px-6 py-2 data-[state=active]:bg-white data-[state=active]:text-[#005BAA] data-[state=active]:shadow-sm">Phân quyền & Vai trò</TabsTrigger>
-          <TabsTrigger value="territory" className="rounded-xl font-bold px-6 py-2 data-[state=active]:bg-white data-[state=active]:text-[#005BAA] data-[state=active]:shadow-sm">Địa bàn quản lý ({territories.length})</TabsTrigger>
+        <TabsList className="bg-slate-100/80 p-1.5 rounded-2xl w-fit mb-6 overflow-x-auto max-w-full shadow-inner border border-slate-200/50">
+          <TabsTrigger value="list" className="rounded-xl font-bold px-6 py-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-blue-700 data-[state=active]:text-white data-[state=active]:shadow-md transition-all">Danh sách nhân sự ({filteredUsers.length})</TabsTrigger>
+          <TabsTrigger value="roles" className="rounded-xl font-bold px-6 py-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-md transition-all">Phân quyền & Vai trò</TabsTrigger>
+          <TabsTrigger value="territory" className="rounded-xl font-bold px-6 py-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-emerald-700 data-[state=active]:text-white data-[state=active]:shadow-md transition-all">Địa bàn quản lý ({territories.length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="list" className="space-y-4 m-0 flex-1 flex flex-col min-h-0">
@@ -1166,12 +1168,12 @@ export default function UserManagement() {
 <div className="w-full overflow-x-auto overflow-y-auto flex-1 min-h-0 custom-scrollbar pb-6">
 <Table className="min-w-[600px]">
                        <TableHeader>
-                          <TableRow className="bg-slate-50/30">
-                             <TableHead className="text-[10px] uppercase font-black px-6 w-[240px]">Chức năng (Modules)</TableHead>
-                             <TableHead className={cn("text-center text-[10px] font-black uppercase text-blue-600 transition-all", selectedRole === 'admin' ? "bg-blue-100/30 ring-1 ring-[#005BAA]/10 font-bold py-3.5" : "")}>Admin Cấp cao</TableHead>
-                             <TableHead className={cn("text-center text-[10px] font-black uppercase text-indigo-600 transition-all", selectedRole === 'manager' ? "bg-blue-100/30 ring-1 ring-[#005BAA]/10 font-bold py-3.5" : "")}>Giám đốc HĐ</TableHead>
-                             <TableHead className={cn("text-center text-[10px] font-black uppercase text-emerald-600 transition-all", selectedRole === 'staff' ? "bg-blue-100/30 ring-1 ring-[#005BAA]/10 font-bold py-3.5" : "")}>NVKD</TableHead>
-                             <TableHead className={cn("text-center text-[10px] font-black uppercase text-slate-400 transition-all", selectedRole === 'collaborator' ? "bg-blue-100/30 ring-1 ring-[#005BAA]/10 font-bold py-3.5" : "")}>CTV Liên kết</TableHead>
+                          <TableRow className="bg-slate-50/50">
+                             <TableHead className="text-[11px] uppercase font-black px-6 w-[240px] text-slate-700">Chức năng (Modules)</TableHead>
+                             <TableHead className={cn("text-center text-[10px] font-black uppercase transition-all whitespace-nowrap px-4 tracking-wider", selectedRole === 'admin' ? "bg-red-50 text-red-600 ring-1 ring-red-200" : "text-red-500/80")}>Admin Cấp cao</TableHead>
+                             <TableHead className={cn("text-center text-[10px] font-black uppercase transition-all whitespace-nowrap px-4 tracking-wider", selectedRole === 'manager' ? "bg-amber-50 text-amber-600 ring-1 ring-amber-200" : "text-amber-500/80")}>Giám đốc HĐ</TableHead>
+                             <TableHead className={cn("text-center text-[10px] font-black uppercase transition-all whitespace-nowrap px-4 tracking-wider", selectedRole === 'staff' ? "bg-emerald-50 text-emerald-600 ring-1 ring-emerald-200" : "text-emerald-500/80")}>NVKD</TableHead>
+                             <TableHead className={cn("text-center text-[10px] font-black uppercase transition-all whitespace-nowrap px-4 tracking-wider", selectedRole === 'collaborator' ? "bg-indigo-50 text-indigo-600 ring-1 ring-indigo-200" : "text-indigo-500/80")}>CTV Liên kết</TableHead>
                           </TableRow>
                        </TableHeader>
                        <TableBody>
