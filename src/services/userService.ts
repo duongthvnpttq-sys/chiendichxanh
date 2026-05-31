@@ -128,7 +128,9 @@ export const userService = {
   },
 
   async syncUsersInBackground() {
+    const now = Date.now();
     if ((this as any)._syncingUsers) return;
+    if ((this as any)._lastUserSync && now - (this as any)._lastUserSync < 60000) return; // 1 min throttle
     (this as any)._syncingUsers = true;
     try {
       const localUsers = getLocal<UserDetail[]>(STORAGE_KEYS.USERS, INITIAL_USERS).filter((u: any) => !u.id.startsWith("pwd_"));
@@ -190,6 +192,7 @@ export const userService = {
       console.error("Users background sync failed:", err);
     } finally {
       (this as any)._syncingUsers = false;
+      (this as any)._lastUserSync = Date.now();
     }
   },
 
@@ -319,7 +322,9 @@ export const userService = {
   },
 
   async syncTerritoriesInBackground() {
+    const now = Date.now();
     if ((this as any)._syncingTerritories) return;
+    if ((this as any)._lastTerritorySync && now - (this as any)._lastTerritorySync < 60000) return; // 1 min throttle
     (this as any)._syncingTerritories = true;
     try {
       const localTerritories = getLocal<Territory[]>(STORAGE_KEYS.TERRITORIES, INITIAL_TERRITORIES);
@@ -338,6 +343,7 @@ export const userService = {
       console.error("Territories background sync failed:", err);
     } finally {
       (this as any)._syncingTerritories = false;
+      (this as any)._lastTerritorySync = Date.now();
     }
   },
 
@@ -409,7 +415,9 @@ export const userService = {
   },
 
   async syncUnitSettingsInBackground() {
+    const now = Date.now();
     if ((this as any)._syncingUnitSettings) return;
+    if ((this as any)._lastSettingsSync && now - (this as any)._lastSettingsSync < 60000) return; // 1 min throttle
     (this as any)._syncingUnitSettings = true;
     try {
       const localSettings = getLocal<UnitSettings>(STORAGE_KEYS.UNIT_SETTINGS, DEFAULT_SETTINGS);
@@ -431,6 +439,7 @@ export const userService = {
       console.error("Unit settings background sync failed:", err);
     } finally {
       (this as any)._syncingUnitSettings = false;
+      (this as any)._lastSettingsSync = Date.now();
     }
   },
 

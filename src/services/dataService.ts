@@ -4,7 +4,7 @@ let lastAssignmentsSync = 0;
 let lastPotentialsSync = 0;
 let lastCategoriesSync = 0;
 let lastBatchesSync = 0;
-const SYNC_INTERVAL = 2000; // 2 seconds for near real-time experiences
+const SYNC_INTERVAL = 30000; // 30 seconds for background sync (realtime handles immediate updates)
 
 import { createClient } from "@supabase/supabase-js";
 import { toast } from 'sonner';
@@ -260,10 +260,22 @@ export const dataService = {
     dataRealtimeInitialized = true;
     
     // Hook into Postgres changes if enabled for assignments
-    supabase.channel('vnpt_assignments_sync_channel')
+    supabase.channel('vnpt_sync_channel')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'vnpt_assignments' }, () => {
           lastAssignmentsSync = 0; // force re-fetch
           this.getAssignments();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'vnpt_customers' }, () => {
+          lastCustomersSync = 0; 
+          this.getCustomers();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'vnpt_batches' }, () => {
+          lastBatchesSync = 0; 
+          this.getBatches();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'vnpt_potential_customers' }, () => {
+          lastPotentialsSync = 0; 
+          this.getPotentialCustomers();
       })
       .subscribe();
 
@@ -922,11 +934,13 @@ export const dataService = {
   subscribe(callback: () => void) {
     this.setupDataRealtime();
     listeners.add(callback);
+    
+    // Fallback sync every 30 seconds
     const interval = setInterval(() => {
       this.getCustomers();
       this.getBatches();
       this.getAssignments();
-    }, 3000);
+    }, 30000);
     return () => {
       listeners.delete(callback);
       clearInterval(interval);
@@ -943,7 +957,8 @@ export const dataService = {
     listeners.add(handler);
     handler(); // Initial call
     
-    const interval = setInterval(handler, 3000);
+    // Fallback sync every 30 seconds
+    const interval = setInterval(handler, 30000);
     
     return () => {
       listeners.delete(handler);

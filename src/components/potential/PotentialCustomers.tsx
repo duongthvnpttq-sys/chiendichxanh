@@ -49,7 +49,7 @@ export default function PotentialCustomers() {
 
     const autoSyncInterval = setInterval(() => {
       dataService.forceSyncPotentials().catch(console.error);
-    }, 10000); // 10 seconds auto-sync
+    }, 60000); // 60 seconds auto-sync (realtime handles immediate updates)
 
     setUsers(userService.getUsers());
     const unsubUsers = userService.subscribe(() => setUsers(userService.getUsers()));

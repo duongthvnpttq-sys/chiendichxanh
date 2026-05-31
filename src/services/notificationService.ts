@@ -57,7 +57,7 @@ export const notificationService = {
     listeners.add(callback);
     const interval = setInterval(() => {
       this.getNotifications();
-    }, 2000);
+    }, 30000); // 30 seconds instead of 2 seconds
     return () => {
       listeners.delete(callback);
       clearInterval(interval);
@@ -134,6 +134,13 @@ export const notificationService = {
     
     // Subscribe to realtime broadcasts for instant cross-device notifications without needing a table
     notificationChannel = supabase.channel('vnpt_notifications_channel');
+    
+    // Listen to direct postgres changes for real-time sync without aggressive polling
+    notificationChannel.on('postgres_changes', { event: '*', schema: 'public', table: 'vnpt_notifications' }, () => {
+       lastSync = 0; // force a re-fetch on the next getNotifications call
+       this.getNotifications();
+    });
+
     notificationChannel.on('broadcast', { event: 'new_notification' }, (payload) => {
       const incomingNotif = payload.payload as VNPTNotification;
       const user = authService.getCurrentUser();
@@ -192,7 +199,7 @@ export const notificationService = {
     
     // Auto sync background cache
     const now = Date.now();
-    const SYNC_INTERVAL_MS = 2000;
+    const SYNC_INTERVAL_MS = 30000; // 30 seconds sync interval
     if (!isSyncing && now - lastSync > SYNC_INTERVAL_MS) { // sync background
       isSyncing = true;
       fetchFromSupabase<VNPTNotification[]>('vnpt_notifications', 'notifications', [])
