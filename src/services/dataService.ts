@@ -456,34 +456,29 @@ export const dataService = {
 
   async deleteAssignmentsBulk(customerIds: string[], campaignId: string) {
     const currentAssignments = await this.getAssignments();
-    const toDeleteKeyStrings = new Set();
+    const toDeleteIds = new Set<string>();
     
     currentAssignments.forEach(a => {
         if (customerIds.includes(a.customerId) && (campaignId === 'all' || a.campaignId === campaignId)) {
-            toDeleteKeyStrings.add(`${a.customerId}_${a.campaignId}`);
+            if (a.id) {
+                toDeleteIds.add(a.id);
+            }
         }
     });
 
-    const updatedAssignments = currentAssignments.filter(a => !toDeleteKeyStrings.has(`${a.customerId}_${a.campaignId}`));
+    const updatedAssignments = currentAssignments.filter(a => !(a.id && toDeleteIds.has(a.id)));
     setLocal(STORAGE_KEYS.ASSIGNMENTS, updatedAssignments);
     
-    if (customerIds.length > 0) {
+    const idsToDelete = Array.from(toDeleteIds);
+    if (idsToDelete.length > 0) {
       try {
         const CHUNK_SIZE = 500;
-        for (let i = 0; i < customerIds.length; i += CHUNK_SIZE) {
-            const chunk = customerIds.slice(i, i + CHUNK_SIZE);
-            let query1 = supabase.from('vnpt_assignments').delete().in('customerId', chunk);
-            if (campaignId && campaignId !== 'all') {
-                query1 = query1.eq('campaignId', campaignId);
-            }
-            const { error: err1 } = await query1;
+        for (let i = 0; i < idsToDelete.length; i += CHUNK_SIZE) {
+            const chunk = idsToDelete.slice(i, i + CHUNK_SIZE);
+            const { error: err1 } = await supabase.from('vnpt_assignments').delete().in('id', chunk);
             
             if (err1 && err1.code === '42P01') {
-                let query2 = supabase.from('assignments').delete().in('customerId', chunk);
-                if (campaignId && campaignId !== 'all') {
-                    query2 = query2.eq('campaignId', campaignId);
-                }
-                await query2;
+                await supabase.from('assignments').delete().in('id', chunk);
             } else if (err1) {
                 console.error("Lỗi xóa db:", err1);
             }
