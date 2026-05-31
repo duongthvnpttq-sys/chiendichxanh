@@ -1818,7 +1818,7 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
 
                   <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col flex-1 min-h-0">
                     <div className="w-full overflow-x-auto overflow-y-auto custom-scrollbar flex-1 min-h-0">
-                      <Table className="min-w-[1000px]">
+                      <Table className="min-w-[1200px]">
                       <TableHeader className="bg-slate-50/50">
                         <TableRow className="hover:bg-transparent">
                           <TableHead className="w-12 px-6">
@@ -1840,11 +1840,11 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
                               }}
                             />
                           </TableHead>
-                          <TableHead className="text-[10px] uppercase font-black text-slate-400">Khách hàng / Mã TB</TableHead>
-                          <TableHead className="text-[10px] uppercase font-black text-slate-400">Địa chỉ / Doanh thu</TableHead>
-                          <TableHead className="text-[10px] uppercase font-black text-slate-400">Quản lý Ô / NVKD / NVKT</TableHead>
-                          <TableHead className="text-[10px] uppercase font-black text-slate-400 text-center">Nhân sự thực hiện</TableHead>
-                          <TableHead className="text-[10px] uppercase font-black text-slate-400 text-center">Tiến độ</TableHead>
+                          <TableHead className="text-[10px] uppercase font-black text-slate-400 whitespace-nowrap tracking-wider">Khách hàng / Mã TB</TableHead>
+                          <TableHead className="text-[10px] uppercase font-black text-slate-400 whitespace-nowrap tracking-wider min-w-[200px]">Địa chỉ / Doanh thu</TableHead>
+                          <TableHead className="text-[10px] uppercase font-black text-slate-400 whitespace-nowrap tracking-wider">Quản lý Ô / NVKD / NVKT</TableHead>
+                          <TableHead className="text-[10px] uppercase font-black text-slate-400 text-center whitespace-nowrap tracking-wider">Nhân sự thực hiện</TableHead>
+                          <TableHead className="text-[10px] uppercase font-black text-slate-400 text-center whitespace-nowrap tracking-wider">Tiến độ</TableHead>
                           <TableHead className="text-right px-6 text-[10px] uppercase font-black text-slate-400"></TableHead>
                         </TableRow>
                       </TableHeader>

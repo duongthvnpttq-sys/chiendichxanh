@@ -263,8 +263,8 @@ export default function VNPTLayout({ children, userRole, userName, onNavigate, c
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     className={cn(
-                      "text-[13px] tracking-wide",
-                      currentPage === item.id ? "font-bold text-white shadow-sm dropdown-shadow" : "font-medium"
+                      "text-[12px] tracking-wide text-left truncate block w-full",
+                      currentPage === item.id ? "font-bold text-white drop-shadow-sm" : "font-medium"
                     )}
                   >
                     {item.label}
