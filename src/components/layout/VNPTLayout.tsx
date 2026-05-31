@@ -180,7 +180,7 @@ export default function VNPTLayout({ children, userRole, userName, onNavigate, c
     { id: 'assignments', label: 'Giao nhiệm vụ', icon: ClipboardList, roles: currentPermissions.assignments },
     { id: 'archive', label: 'Lưu trữ & Lịch sử', icon: Clock, roles: currentPermissions.archive },
     { id: 'tasks', label: 'Nhiệm vụ', icon: MapPin, roles: currentPermissions.tasks },
-    { id: 'customers', label: 'Tập khách hàng', icon: Users, roles: currentPermissions.customers },
+    { id: 'customers', label: 'Dữ liệu khách hàng', icon: Users, roles: currentPermissions.customers },
     { id: 'potential', label: 'Theo dõi tiềm năng', icon: TrendingUp, roles: currentPermissions.potential },
     { id: 'settings', label: 'Cài đặt đơn vị', icon: Settings, roles: currentPermissions.settings },
   ];
