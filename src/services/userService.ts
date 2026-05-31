@@ -185,8 +185,13 @@ export const userService = {
           setLocal(STORAGE_KEYS.USERS, dbUsers);
           this.notify();
         }
-      } else if (allDbUsers && allDbUsers.length === 0 && localUsers.length > 0) {
-        await upsertToSupabase("vnpt_hr_users", "hr_users", localUsers);
+      } else if (allDbUsers && allDbUsers.length === 0) {
+        // Only sync from Supabase downward. If DB is empty, clear local mock data (except admin/current user if needed, but best is just make it empty if we want true DB sync).
+        // If we want to strictly use DB, we overwrite local with DB.
+        if (localUsers.length > 0) {
+          setLocal(STORAGE_KEYS.USERS, []);
+          this.notify();
+        }
       }
     } catch (err) {
       console.error("Users background sync failed:", err);
@@ -336,8 +341,11 @@ export const userService = {
           setLocal(STORAGE_KEYS.TERRITORIES, dbTerritories);
           this.notify();
         }
-      } else if (dbTerritories && dbTerritories.length === 0 && localTerritories.length > 0) {
-        await upsertToSupabase('vnpt_hr_territories', 'hr_territories', localTerritories);
+      } else if (dbTerritories && dbTerritories.length === 0) {
+        if (localTerritories.length > 0) {
+          setLocal(STORAGE_KEYS.TERRITORIES, []);
+          this.notify();
+        }
       }
     } catch (err) {
       console.error("Territories background sync failed:", err);
@@ -433,7 +441,9 @@ export const userService = {
           this.notify();
         }
       } else if (dbSettings && dbSettings.length === 0) {
-        await upsertToSupabase('vnpt_unit_settings', 'unit_settings', [{ id: 'settings_single', ...localSettings }]);
+        // We might want to clear or keep the default, but let's avoid pushing.
+        // Wait, if no settings in DB, maybe we just do nothing and keep default, or should we save default locally?
+        // Let's just not upsync.
       }
     } catch (err) {
       console.error("Unit settings background sync failed:", err);

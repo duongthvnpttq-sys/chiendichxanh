@@ -313,25 +313,7 @@ export const dataService = {
          this._syncing.customers = true;
          // Trigger background sync
          fetchFromSupabase<Customer[]>('vnpt_customers', 'customers', []).then(dbData => {
-           if (dbData) {
-             const localData = getLocal<Customer[]>(STORAGE_KEYS.CUSTOMERS, []);
-             const dbIds = new Set(dbData.map(c => c.id));
-             const localOnly = localData.filter(c => !dbIds.has(c.id));
-             
-             if (localOnly.length > 0) {
-               upsertToSupabase('vnpt_customers', 'customers', localOnly).catch(console.error);
-             }
-             
-             const merged = [...dbData];
-             const mergedIds = new Set(merged.map(c => c.id));
-             for (const item of localData) {
-               if (!mergedIds.has(item.id)) merged.push(item);
-             }
-             
-             setLocal(STORAGE_KEYS.CUSTOMERS, merged);
-             lastCustomersSync = Date.now();
-             this.notify();
-           }
+           if (dbData) { setLocal(STORAGE_KEYS.CUSTOMERS, dbData); lastCustomersSync = Date.now(); this.notify(); }
          }).catch(err => {
            console.error("Customers Supabase sync failed:", err);
          }).finally(() => {
@@ -421,25 +403,7 @@ export const dataService = {
     if (!this._syncing.assignments && (now - lastAssignmentsSync > SYNC_INTERVAL || (assignments.length === 0 && now - lastAssignmentsSync > 5000))) {
          this._syncing.assignments = true;
          fetchFromSupabase<Assignment[]>('vnpt_assignments', 'assignments', []).then(dbAssignments => {
-           if (dbAssignments) {
-             const localData = getLocal<Assignment[]>(STORAGE_KEYS.ASSIGNMENTS, []);
-             const dbIds = new Set(dbAssignments.map(a => `${a.customerId}_${a.campaignId}`));
-             const localOnly = localData.filter(a => !dbIds.has(`${a.customerId}_${a.campaignId}`));
-             
-             if (localOnly.length > 0) {
-               upsertToSupabase('vnpt_assignments', 'assignments', localOnly).catch(console.error);
-             }
-             
-             const merged = [...dbAssignments];
-             const mergedIds = new Set(merged.map(a => `${a.customerId}_${a.campaignId}`));
-             for (const item of localData) {
-               if (!mergedIds.has(`${item.customerId}_${item.campaignId}`)) merged.push(item);
-             }
-             
-             setLocal(STORAGE_KEYS.ASSIGNMENTS, merged);
-             lastAssignmentsSync = Date.now();
-             this.notify();
-           }
+           if (dbAssignments) { setLocal(STORAGE_KEYS.ASSIGNMENTS, dbAssignments); lastAssignmentsSync = Date.now(); this.notify(); }
          }).catch(err => console.error("Assignments sync fail:", err))
            .finally(() => this._syncing.assignments = false);
     }
@@ -582,32 +546,13 @@ export const dataService = {
       this._syncing.batches = true;
       fetchFromSupabase<ImplementationBatch[]>('vnpt_batches', 'batches', []).then(dbBatches => {
         if (dbBatches && dbBatches.length > 0) {
-          const localData = getLocal<ImplementationBatch[]>(STORAGE_KEYS.BATCHES, []);
-          const dbIds = new Set(dbBatches.map(b => b.id));
-          const localOnly = localData.filter(b => !dbIds.has(b.id));
-          
-          if (localOnly.length > 0) {
-            upsertToSupabase('vnpt_batches', 'batches', localOnly).catch(console.error);
-          }
-          const merged = [...dbBatches];
-          const mergedIds = new Set(merged.map(b => b.id));
-          for (const item of localData) {
-            if (!mergedIds.has(item.id)) merged.push(item);
-          }
-          
-          setLocal(STORAGE_KEYS.BATCHES, merged);
+          setLocal(STORAGE_KEYS.BATCHES, dbBatches);
           lastBatchesSync = Date.now();
           this.notify();
         } else if (dbBatches && dbBatches.length === 0) {
-          if (getLocal(STORAGE_KEYS.BATCHES, null) !== null) {
-            const localData = getLocal<ImplementationBatch[]>(STORAGE_KEYS.BATCHES, []);
-            if (localData.length > 0) {
-              upsertToSupabase('vnpt_batches', 'batches', localData).catch(console.error);
-            }
-            lastBatchesSync = Date.now();
-          } else {
-            upsertToSupabase('vnpt_batches', 'batches', batches).catch(console.error);
-          }
+          setLocal(STORAGE_KEYS.BATCHES, []);
+          lastBatchesSync = Date.now();
+          this.notify();
         }
       }).catch(err => console.error("Batches sync fail:", err))
         .finally(() => this._syncing.batches = false);
@@ -674,32 +619,13 @@ export const dataService = {
       this._syncing.categories = true;
       fetchFromSupabase<ProgramCategory[]>('vnpt_categories', 'categories', []).then(dbCategories => {
         if (dbCategories && dbCategories.length > 0) {
-          const localData = getLocal<ProgramCategory[]>(STORAGE_KEYS.CATEGORIES, []);
-          const dbIds = new Set(dbCategories.map(c => c.id));
-          const localOnly = localData.filter(c => !dbIds.has(c.id));
-          
-          if (localOnly.length > 0) {
-            upsertToSupabase('vnpt_categories', 'categories', localOnly).catch(console.error);
-          }
-          const merged = [...dbCategories];
-          const mergedIds = new Set(merged.map(c => c.id));
-          for (const item of localData) {
-            if (!mergedIds.has(item.id)) merged.push(item);
-          }
-          
-          setLocal(STORAGE_KEYS.CATEGORIES, merged);
+          setLocal(STORAGE_KEYS.CATEGORIES, dbCategories);
           lastCategoriesSync = Date.now();
           this.notify();
         } else if (dbCategories && dbCategories.length === 0) {
-          if (getLocal(STORAGE_KEYS.CATEGORIES, null) !== null) {
-            const localData = getLocal<ProgramCategory[]>(STORAGE_KEYS.CATEGORIES, []);
-            if (localData.length > 0) {
-              upsertToSupabase('vnpt_categories', 'categories', localData).catch(console.error);
-            }
-            lastCategoriesSync = Date.now();
-          } else {
-            upsertToSupabase('vnpt_categories', 'categories', categories).catch(console.error);
-          }
+          setLocal(STORAGE_KEYS.CATEGORIES, []);
+          lastCategoriesSync = Date.now();
+          this.notify();
         }
       }).catch(err => console.error("Categories sync fail:", err))
         .finally(() => this._syncing.categories = false);
@@ -782,39 +708,12 @@ export const dataService = {
     if (!this._syncing.potentials && (now - lastPotentialsSync > SYNC_INTERVAL || (potentials.length === 0 && now - lastPotentialsSync > 5000))) {
       this._syncing.potentials = true;
       fetchFromSupabase<PotentialCustomer[]>('vnpt_potential_customers', 'potential_customers', []).then(async dbPotentials => {
-        if (dbPotentials) {
-          const deletedIds = getLocal<string[]>(STORAGE_KEYS.DELETED_POTENTIALS, []);
-          
-          if (deletedIds.length > 0) {
-            const stillInDb = dbPotentials.filter(p => deletedIds.includes(p.id));
-            if (stillInDb.length > 0) {
-              await deleteFromSupabase('vnpt_potential_customers', 'potential_customers', 'id', stillInDb.map(x => x.id));
-            }
-            dbPotentials = dbPotentials.filter(p => !deletedIds.includes(p.id));
-          }
-
-          // Compare with local to avoid losing locally created items that failed to upload
-          const localPotentials = getLocal<any[]>(STORAGE_KEYS.POTENTIAL_CUSTOMERS, []);
-          const dbIds = new Set(dbPotentials.map(p => p.id));
-          
-          // Only keep local items that are very recently created (within last 1 hour) AND were never synced to avoid resurrecting deleted items
-          const oneHourAgo = Date.now() - 3600000;
-          const localOnly = localPotentials.filter(p => !dbIds.has(p.id) && !deletedIds.includes(p.id) && !p._isSynced && new Date(p.createdAt).getTime() > oneHourAgo);
-          
-          if (localOnly.length > 0) {
-             const res = await upsertToSupabase('vnpt_potential_customers', 'potential_customers', localOnly.map(p => { const { _isSynced, ...rest } = p; return rest; }));
-             if (res && !res.success) {
-               throw new Error(res.error?.message || "Lỗi cập nhật dữ liệu cục bộ lên đám mây");
-             }
-          }
-          
-          // Merge
-          const merged = [...dbPotentials.map(p => ({ ...p, _isSynced: true }))];
-          for (const p of localOnly) {
-             merged.push(p);
-          }
-          
-          setLocal(STORAGE_KEYS.POTENTIAL_CUSTOMERS, merged);
+        if (dbPotentials && dbPotentials.length > 0) {
+          setLocal(STORAGE_KEYS.POTENTIAL_CUSTOMERS, dbPotentials);
+          lastPotentialsSync = Date.now();
+          this.notify();
+        } else if (dbPotentials && dbPotentials.length === 0) {
+          setLocal(STORAGE_KEYS.POTENTIAL_CUSTOMERS, []);
           lastPotentialsSync = Date.now();
           this.notify();
         }
@@ -831,37 +730,12 @@ export const dataService = {
     this._syncing.potentials = true;
     try {
       const dbPotentials = await fetchFromSupabase<PotentialCustomer[]>('vnpt_potential_customers', 'potential_customers', []);
-      if (dbPotentials) {
-        const deletedIds = getLocal<string[]>(STORAGE_KEYS.DELETED_POTENTIALS, []);
-        let workingDbPotentials = dbPotentials;
-        
-        if (deletedIds.length > 0) {
-          const stillInDb = workingDbPotentials.filter(p => deletedIds.includes(p.id));
-          if (stillInDb.length > 0) {
-            await deleteFromSupabase('vnpt_potential_customers', 'potential_customers', 'id', stillInDb.map(x => x.id));
-          }
-          workingDbPotentials = workingDbPotentials.filter(p => !deletedIds.includes(p.id));
-        }
-
-        const localPotentials = getLocal<any[]>(STORAGE_KEYS.POTENTIAL_CUSTOMERS, []);
-        const dbIds = new Set(workingDbPotentials.map(p => p.id));
-        
-        const oneHourAgo = Date.now() - 3600000;
-        const localOnly = localPotentials.filter(p => !dbIds.has(p.id) && !deletedIds.includes(p.id) && !p._isSynced && new Date(p.createdAt).getTime() > oneHourAgo);
-        
-        if (localOnly.length > 0) {
-           const res = await upsertToSupabase('vnpt_potential_customers', 'potential_customers', localOnly.map(p => { const { _isSynced, ...rest } = p; return rest; }));
-           if (res && !res.success) {
-             throw new Error(res.error?.message || "Lỗi cập nhật dữ liệu cục bộ lên đám mây");
-           }
-        }
-        
-        const merged = [...workingDbPotentials.map(p => ({ ...p, _isSynced: true }))];
-        for (const p of localOnly) {
-           merged.push(p);
-        }
-        
-        setLocal(STORAGE_KEYS.POTENTIAL_CUSTOMERS, merged);
+      if (dbPotentials && dbPotentials.length > 0) {
+        setLocal(STORAGE_KEYS.POTENTIAL_CUSTOMERS, dbPotentials);
+        lastPotentialsSync = Date.now();
+        this.notify();
+      } else if (dbPotentials && dbPotentials.length === 0) {
+        setLocal(STORAGE_KEYS.POTENTIAL_CUSTOMERS, []);
         lastPotentialsSync = Date.now();
         this.notify();
       }
