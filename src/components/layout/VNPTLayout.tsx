@@ -185,7 +185,7 @@ export default function VNPTLayout({ children, userRole, userName, onNavigate, c
     { id: 'settings', label: 'Cài đặt đơn vị', icon: Settings, roles: currentPermissions.settings },
   ];
 
-  const filteredMenu = menuItems.filter(item => item.roles.includes(userRole));
+  const filteredMenu = menuItems.filter(item => item.roles.map(r => r.toLowerCase()).includes(userRole.toLowerCase()));
 
   const handleLogout = () => {
     authService.logout();

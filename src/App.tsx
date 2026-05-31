@@ -35,7 +35,7 @@ export default function App() {
         const savedUser = authService.getCurrentUser();
         if (savedUser) {
           setUser(savedUser);
-          if (savedUser.role !== 'admin' && savedUser.role !== 'manager') {
+          if (savedUser.role?.toLowerCase() !== 'admin' && savedUser.role?.toLowerCase() !== 'manager') {
               if (currentPage === 'users' || currentPage === 'settings') {
                   setCurrentPage('dashboard');
               }
@@ -61,7 +61,7 @@ export default function App() {
     try {
       const loggedInUser = await authService.login(email, password, rememberMe);
       setUser(loggedInUser);
-      if (loggedInUser.role !== 'admin' && loggedInUser.role !== 'manager') {
+      if (loggedInUser.role?.toLowerCase() !== 'admin' && loggedInUser.role?.toLowerCase() !== 'manager') {
          setCurrentPage('dashboard');
       }
       toast.success("Đăng nhập thành công qua hệ thống xác thực!");
@@ -223,8 +223,8 @@ export default function App() {
 }
 
 function renderPage(page: string, onNavigate: (page: string) => void, userRole: string) {
-  const allowedRoles = getRoutePermissions()[page] || ['ADMIN'];
-  if (!allowedRoles.includes(userRole)) {
+  const allowedRoles = getRoutePermissions()[page] || ['admin'];
+  if (!allowedRoles.map((r: string) => r.toLowerCase()).includes(userRole.toLowerCase())) {
     return (
       <div className="flex flex-col items-center justify-center h-full min-h-[400px] bg-slate-50 rounded-3xl m-6 border border-dashed border-slate-200">
         <Lock className="w-16 h-16 text-slate-300 mb-4" />

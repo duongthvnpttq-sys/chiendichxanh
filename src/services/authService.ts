@@ -324,7 +324,7 @@ export const authService = {
         code: profile.code,
         name: profile.name,
         username: profile.username,
-        role: profile.role === 'ADMIN' ? 'Admin' : (profile.role === 'MANAGER' ? 'Tổ trưởng' : 'Nhân viên'),
+        role: profile.role,
         unit: profile.unit,
         status: 'ACTIVE' as const,
         phone: profile.phone,

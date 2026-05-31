@@ -196,7 +196,7 @@ export default function PotentialCustomers() {
 
   const filteredCustomers = customers.filter(c => {
     const user = authService.getCurrentUser();
-    if (!user || user.role === 'ADMIN' || user.role === 'MANAGER') return true;
+    if (!user || user.role?.toLowerCase() === 'admin' || user.role?.toLowerCase() === 'manager') return true;
     return c.staffId === user.uid || c.createdBy === user.uid;
   });
 
@@ -446,7 +446,7 @@ export default function PotentialCustomers() {
                         >
                           <Search className="w-4 h-4 mr-2" /> Xem & Ghi chú
                         </Button>
-                        {(authService.getCurrentUser()?.role === 'ADMIN' || authService.getCurrentUser()?.role === 'MANAGER') && (
+                        {(authService.getCurrentUser()?.role?.toLowerCase() === 'admin' || authService.getCurrentUser()?.role?.toLowerCase() === 'manager') && (
                           <Button 
                             variant="ghost" 
                             onClick={() => handleDelete(c.id)}

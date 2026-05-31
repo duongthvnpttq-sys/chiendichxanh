@@ -756,7 +756,7 @@ export default function UserManagement() {
                 </div>
                 
                 {/* Sale Results / KPI Section */}
-                {editingUser?.role === 'staff' || editingUser?.role === 'collaborator' ? (
+                {editingUser?.role?.toLowerCase() === 'staff' || editingUser?.role?.toLowerCase() === 'collaborator' ? (
                 <div className="mt-8">
                    <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 border-b border-slate-100 pb-2">Kết quả bán hàng (Tháng này)</h4>
                    <div className="grid grid-cols-3 gap-3">
