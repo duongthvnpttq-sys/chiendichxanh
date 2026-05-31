@@ -268,7 +268,7 @@ export const dataService = {
       .subscribe();
 
     // Sync aggressively when task notification arrives
-    supabase.channel('vnpt_notifications_channel_data_hook')
+    supabase.channel('vnpt_notifications_channel')
       .on('broadcast', { event: 'new_notification' }, (payload) => {
           const incomingNotif = payload.payload;
           if (incomingNotif && incomingNotif.type === 'TASK') {
@@ -277,6 +277,14 @@ export const dataService = {
           }
       })
       .subscribe();
+
+    // Auto-sync when waking up from background/screen off
+    document.addEventListener("visibilitychange", () => {
+       if (document.visibilityState === "visible") {
+          lastAssignmentsSync = 0;
+          this.getAssignments();
+       }
+    });
   },
 
   // Flag to track active async syncs

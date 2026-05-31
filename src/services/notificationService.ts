@@ -175,6 +175,14 @@ export const notificationService = {
     });
     
     notificationChannel.subscribe();
+
+    // Auto-sync notifications when waking up from background/screen off
+    document.addEventListener("visibilitychange", () => {
+       if (document.visibilityState === "visible") {
+          lastSync = 0;
+          this.getNotifications();
+       }
+    });
   },
 
   getNotifications(): VNPTNotification[] {
