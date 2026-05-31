@@ -73,7 +73,7 @@ export const authService = {
             const { data: hrUserByEmail } = await supabase
                .from('vnpt_hr_users')
                .select('*')
-               .ilike('email', authData.user.email || emailToAuth)
+               .or(`email.ilike.${authData.user.email || emailToAuth},username.ilike.${emailOrUsername}`)
                .limit(1);
             if (hrUserByEmail && hrUserByEmail.length > 0) {
                hrUser = hrUserByEmail[0];

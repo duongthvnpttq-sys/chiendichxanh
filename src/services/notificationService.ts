@@ -40,6 +40,17 @@ const INITIAL_NOTIFICATIONS: VNPTNotification[] = [];
 
 let listeners: Set<() => void> = new Set();
 
+let sharedAudioCtx: AudioContext | null = null;
+const getAudioContext = () => {
+  if (!sharedAudioCtx) {
+    sharedAudioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+  }
+  if (sharedAudioCtx.state === 'suspended') {
+    sharedAudioCtx.resume();
+  }
+  return sharedAudioCtx;
+};
+
 export const notificationService = {
   subscribe(callback: () => void) {
     listeners.add(callback);
@@ -56,9 +67,51 @@ export const notificationService = {
     listeners.forEach(l => l());
   },
 
+  playNotificationSound() {
+    try {
+      const audioCtx = getAudioContext();
+      const oscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // A5
+      oscillator.frequency.exponentialRampToValueAtTime(1760, audioCtx.currentTime + 0.1); // A6
+      
+      gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+      gainNode.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.05);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+      
+      oscillator.start(audioCtx.currentTime);
+      oscillator.stop(audioCtx.currentTime + 0.3);
+    } catch (e) {
+       console.error("Lỗi phát âm thanh:", e);
+    }
+  },
+
+  showNativeNotification(title: string, body: string) {
+    if (!("Notification" in window)) return;
+    
+    if (Notification.permission === "granted") {
+      new Notification(title, { body, icon: '/favicon.ico' });
+    } else if (Notification.permission !== "denied") {
+      Notification.requestPermission().then(permission => {
+        if (permission === "granted") {
+          new Notification(title, { body, icon: '/favicon.ico' });
+        }
+      });
+    }
+  },
+
   initializeRealtime() {
     if (channelInitialized) return;
     channelInitialized = true;
+    
+    if ("Notification" in window && Notification.permission === "default") {
+        Notification.requestPermission();
+    }
     
     // Subscribe to realtime broadcasts for instant cross-device notifications without needing a table
     const channel = supabase.channel('vnpt_notifications_channel');
@@ -71,6 +124,8 @@ export const notificationService = {
          if (!local.some(n => n.id === incomingNotif.id)) {
             // Save locally without broadcasting back
             setLocal(STORAGE_KEY, [incomingNotif, ...local]);
+            this.playNotificationSound();
+            this.showNativeNotification(incomingNotif.title, incomingNotif.message);
             this.notify();
          }
       }
@@ -139,6 +194,19 @@ export const notificationService = {
                   actionUrl: n.actionUrl || null,
                   userId: n.userId || null
                 }))).catch(()=>{});
+             }
+
+             // Check if there are brand new notifications from DB that we didn't have locally
+             const localIds = new Set(local.map(l => l.id));
+             const newFromDb = dbData.filter(d => !localIds.has(d.id) && !d.read && (!d.userId || d.userId === currentUserId || d.userId === 'all'));
+             
+             if (newFromDb.length > 0) {
+               this.playNotificationSound();
+               if (newFromDb.length === 1) {
+                 this.showNativeNotification(newFromDb[0].title, newFromDb[0].message);
+               } else {
+                 this.showNativeNotification('Thông báo mới', `Bạn có ${newFromDb.length} thông báo mới`);
+               }
              }
 
              const merged = [...dbData, ...localOnly];
