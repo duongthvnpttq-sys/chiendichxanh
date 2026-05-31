@@ -9,13 +9,16 @@ import {
   Hash, 
   Image as ImageIcon,
   Save,
-  Info
+  Info,
+  AlertCircle,
+  Settings
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { userService, UnitSettings as IUnitSettings } from "@/src/services/userService";
 import { motion } from "motion/react";
+import { toast } from "sonner";
 
 export default function UnitSettings() {
   const [settings, setSettings] = React.useState<IUnitSettings>(userService.getUnitSettings());
@@ -202,6 +205,40 @@ export default function UnitSettings() {
                   )}
                 </div>
               </div>
+            </CardContent>
+          </Card>
+          <Card className="border border-slate-200 shadow-sm rounded-2xl overflow-hidden mt-6">
+            <CardHeader className="bg-slate-50/80 border-b border-slate-200 py-3.5 px-5">
+              <CardTitle className="text-xs font-bold uppercase tracking-wide text-brand-indigo flex items-center gap-2">
+                <Settings className="w-4 h-4" /> Hệ thống / Cảnh báo
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-5 space-y-4 bg-white">
+              <div className="bg-red-50 text-red-700 p-4 rounded-xl border border-red-100 flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <h4 className="text-sm font-bold uppercase tracking-tight">Xóa trắng bộ nhớ tạm (Cache)</h4>
+                  <p className="text-[11px] font-medium opacity-80 leading-snug">Tính năng này sẽ dọn dẹp toàn bộ dữ liệu lưu tạm trên trình duyệt hiện tại. Sử dụng trong trường hợp hệ thống bị lỗi dữ liệu, sau khi vừa được Admin xóa dữ liệu lỗi cũ từ cơ sở dữ liệu server.</p>
+                </div>
+              </div>
+              <Button 
+                onClick={() => {
+                  try {
+                    localStorage.removeItem('vnpt_customers');
+                    localStorage.removeItem('vnpt_assignments');
+                    localStorage.removeItem('vnpt_batches');
+                    localStorage.removeItem('vnpt_categories');
+                    toast.success("Đã xóa bộ nhớ đệm (cache) trình duyệt. Trang sẽ tự động tải lại.");
+                    setTimeout(() => window.location.reload(), 1500);
+                  } catch (e) {
+                    toast.error("Không thể clear cache");
+                  }
+                }}
+                variant="outline"
+                className="w-full border-red-200 hover:bg-red-50 hover:text-red-600 text-red-500 font-bold tracking-wide uppercase text-xs h-10 rounded-xl"
+              >
+                Tiến hành dọn dẹp Cache
+              </Button>
             </CardContent>
           </Card>
         </div>
