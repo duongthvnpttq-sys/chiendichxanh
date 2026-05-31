@@ -456,15 +456,43 @@ export const dataService = {
 
   async deleteAssignmentsBulk(customerIds: string[], campaignId: string) {
     const currentAssignments = await this.getAssignments();
-    const toDelete = currentAssignments.filter(a => customerIds.includes(a.customerId) && (campaignId === 'all' || a.campaignId === campaignId));
-    const toDeleteIds = toDelete.map(a => a.id).filter(Boolean) as string[];
+    const toDeleteKeyStrings = new Set();
+    
+    currentAssignments.forEach(a => {
+        if (customerIds.includes(a.customerId) && (campaignId === 'all' || a.campaignId === campaignId)) {
+            toDeleteKeyStrings.add(`${a.customerId}_${a.campaignId}`);
+        }
+    });
 
-    const updatedAssignments = currentAssignments.filter(a => !toDeleteIds.includes(a.id as string));
+    const updatedAssignments = currentAssignments.filter(a => !toDeleteKeyStrings.has(`${a.customerId}_${a.campaignId}`));
     setLocal(STORAGE_KEYS.ASSIGNMENTS, updatedAssignments);
     
-    if (toDeleteIds.length > 0) {
-      await deleteFromSupabase('vnpt_assignments', 'assignments', 'id', toDeleteIds);
+    if (customerIds.length > 0) {
+      try {
+        const CHUNK_SIZE = 500;
+        for (let i = 0; i < customerIds.length; i += CHUNK_SIZE) {
+            const chunk = customerIds.slice(i, i + CHUNK_SIZE);
+            let query1 = supabase.from('vnpt_assignments').delete().in('customerId', chunk);
+            if (campaignId && campaignId !== 'all') {
+                query1 = query1.eq('campaignId', campaignId);
+            }
+            const { error: err1 } = await query1;
+            
+            if (err1 && err1.code === '42P01') {
+                let query2 = supabase.from('assignments').delete().in('customerId', chunk);
+                if (campaignId && campaignId !== 'all') {
+                    query2 = query2.eq('campaignId', campaignId);
+                }
+                await query2;
+            } else if (err1) {
+                console.error("Lỗi xóa db:", err1);
+            }
+        }
+      } catch (err) {
+        console.error("Error bulk deleting assignments:", err);
+      }
     }
+    
     this.notify();
   },
 
