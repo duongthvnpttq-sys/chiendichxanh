@@ -64,7 +64,7 @@ import { notificationService } from "@/src/services/notificationService";
 import { toast } from "sonner";
 import InteractiveMap from './InteractiveMap';
 
-const ROLES = [
+const DEFAULT_ROLES = [
   { id: 'admin', name: 'Admin cấp Cao nhất', permissions: ['ALL'] },
   { id: 'manager', name: 'Giám đốc quản trị điều hành', permissions: ['VIEW', 'ASSIGN', 'REPORT', 'UPDATE'] },
   { id: 'staff', name: 'Nhân viên kinh doanh', permissions: ['VIEW', 'UPDATE'] },
@@ -72,6 +72,14 @@ const ROLES = [
 ];
 
 export default function UserManagement() {
+  const [roles, setRoles] = React.useState(() => {
+    const saved = localStorage.getItem('vnpt_roles');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    return DEFAULT_ROLES;
+  });
+
   const [activeTab, setActiveTab ] = React.useState('territory');
   const [selectedRole, setSelectedRole] = React.useState('admin');
   const [isLogEnabled, setIsLogEnabled] = React.useState(() => localStorage.getItem('vnpt_log_enabled') !== 'false');
@@ -412,6 +420,10 @@ export default function UserManagement() {
       toast.error("Vui lòng nhập tên nhóm quyền");
       return;
     }
+    const newId = newRole.name.toLowerCase().replace(/\s+/g, '_').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const updatedRoles = [...roles, { id: newId, name: newRole.name, permissions: ['VIEW'] }];
+    setRoles(updatedRoles);
+    localStorage.setItem('vnpt_roles', JSON.stringify(updatedRoles));
     toast.success(`Đã tạo nhóm quyền: ${newRole.name}`);
     setIsAddRoleOpen(false);
     setNewRole({ name: '', description: '' });
@@ -648,10 +660,9 @@ export default function UserManagement() {
                         <SelectValue placeholder="Chọn vai trò" />
                       </SelectTrigger>
                       <SelectContent>
-                         <SelectItem value="staff">NVKD</SelectItem>
-                         <SelectItem value="manager">Giám đốc HĐ</SelectItem>
-                         <SelectItem value="admin">Admin Cấp cao</SelectItem>
-                         <SelectItem value="collaborator">CTV Liên kết</SelectItem>
+                         {roles.map(r => (
+                           <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+                         ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -736,10 +747,9 @@ export default function UserManagement() {
                         <SelectValue placeholder="Chọn vai trò" />
                       </SelectTrigger>
                       <SelectContent>
-                         <SelectItem value="staff">NVKD</SelectItem>
-                         <SelectItem value="manager">Giám đốc HĐ</SelectItem>
-                         <SelectItem value="admin">Admin Cấp cao</SelectItem>
-                         <SelectItem value="collaborator">CTV Liên kết</SelectItem>
+                         {roles.map(r => (
+                           <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+                         ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -980,13 +990,7 @@ export default function UserManagement() {
                                 <p className="font-bold text-slate-900 leading-none">{user.name}</p>
                                 <div className="flex items-center gap-2 mt-1">
                                   <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                                    {
-                                      user.role === 'staff' ? 'Nhân viên KD' :
-                                      user.role === 'manager' ? 'Giám đốc' :
-                                      user.role === 'admin' ? 'Admin Cấp cao' :
-                                      user.role === 'collaborator' ? 'CTV Liên kết' :
-                                      user.role // fallback
-                                    }
+                                    {roles.find(r => r.id === user.role)?.name || user.role}
                                   </p>
                                   <span className="text-[8px] text-slate-300">•</span>
                                   <p className="text-[10px] text-[#005BAA] font-black lowercase">{user.username}</p>
@@ -1114,7 +1118,7 @@ export default function UserManagement() {
                     <CardTitle className="text-xs font-black uppercase tracking-wider text-slate-800">Nhóm quyền (Roles)</CardTitle>
                  </CardHeader>
                  <CardContent className="p-2">
-                    {ROLES.map((role) => (
+                    {roles.map((role) => (
                       <div 
                         key={role.id}
                         role="button"
@@ -1188,44 +1192,26 @@ export default function UserManagement() {
                        <TableHeader>
                           <TableRow className="bg-slate-50/50">
                              <TableHead className="text-[11px] uppercase font-black px-6 w-[240px] text-slate-700">Chức năng (Modules)</TableHead>
-                             <TableHead className={cn("text-center text-[10px] font-black uppercase transition-all whitespace-nowrap px-4 tracking-wider", selectedRole === 'admin' ? "bg-red-50 text-red-600 ring-1 ring-red-200" : "text-red-500/80")}>Admin Cấp cao</TableHead>
-                             <TableHead className={cn("text-center text-[10px] font-black uppercase transition-all whitespace-nowrap px-4 tracking-wider", selectedRole === 'manager' ? "bg-amber-50 text-amber-600 ring-1 ring-amber-200" : "text-amber-500/80")}>Giám đốc HĐ</TableHead>
-                             <TableHead className={cn("text-center text-[10px] font-black uppercase transition-all whitespace-nowrap px-4 tracking-wider", selectedRole === 'staff' ? "bg-emerald-50 text-emerald-600 ring-1 ring-emerald-200" : "text-emerald-500/80")}>NVKD</TableHead>
-                             <TableHead className={cn("text-center text-[10px] font-black uppercase transition-all whitespace-nowrap px-4 tracking-wider", selectedRole === 'collaborator' ? "bg-indigo-50 text-indigo-600 ring-1 ring-indigo-200" : "text-indigo-500/80")}>CTV Liên kết</TableHead>
+                             {roles.map(r => (
+                               <TableHead key={r.id} className={cn("text-center text-[10px] font-black uppercase transition-all whitespace-nowrap px-4 tracking-wider", selectedRole === r.id ? "bg-red-50 text-red-600 ring-1 ring-red-200" : "text-slate-500/80")}>
+                                 {r.name}
+                               </TableHead>
+                             ))}
                           </TableRow>
                        </TableHeader>
                        <TableBody>
                           {matrix.map((module, i) => (
                              <TableRow key={i} className="hover:bg-slate-50/50 border-b border-slate-50">
                                 <TableCell className="px-6 py-4 font-bold text-slate-700 text-[11px] uppercase tracking-wide">{module.name}</TableCell>
-                                <TableCell className={cn("text-center transition-all", selectedRole === 'admin' ? "bg-blue-50/20" : "")}>
-                                    <Checkbox 
-                                        checked={module.keys.includes('admin')} 
-                                        onCheckedChange={() => togglePermission(i, 'admin')}
-                                        className="rounded text-[#005BAA] border-slate-300" 
-                                    />
-                                </TableCell>
-                                <TableCell className={cn("text-center transition-all", selectedRole === 'manager' ? "bg-blue-50/20" : "")}>
-                                    <Checkbox 
-                                        checked={module.keys.includes('manager')} 
-                                        onCheckedChange={() => togglePermission(i, 'manager')}
-                                        className="rounded text-[#005BAA] border-slate-300" 
-                                    />
-                                </TableCell>
-                                <TableCell className={cn("text-center transition-all", selectedRole === 'staff' ? "bg-blue-50/20" : "")}>
-                                    <Checkbox 
-                                        checked={module.keys.includes('staff')} 
-                                        onCheckedChange={() => togglePermission(i, 'staff')}
-                                        className="rounded text-[#005BAA] border-slate-300" 
-                                    />
-                                </TableCell>
-                                <TableCell className={cn("text-center transition-all", selectedRole === 'collaborator' ? "bg-blue-50/20" : "")}>
-                                    <Checkbox 
-                                        checked={module.keys.includes('collaborator')} 
-                                        onCheckedChange={() => togglePermission(i, 'collaborator')}
-                                        className="rounded text-[#005BAA] border-slate-300" 
-                                    />
-                                </TableCell>
+                                {roles.map(r => (
+                                  <TableCell key={r.id} className={cn("text-center transition-all", selectedRole === r.id ? "bg-blue-50/20" : "")}>
+                                      <Checkbox 
+                                          checked={module.keys.includes(r.id)} 
+                                          onCheckedChange={() => togglePermission(i, r.id)}
+                                          className="rounded text-[#005BAA] border-slate-300" 
+                                      />
+                                  </TableCell>
+                                ))}
                              </TableRow>
                           ))}
                        </TableBody>
