@@ -105,10 +105,40 @@ export default function KPIOverview() {
 
     if (progressData.length === 0) {
         progressData.push(
-            { name: 'Khuyễn mãi Tặng cước', 'Đã giao': 150, 'Hoàn thành': 85, 'Tỷ lệ (%)': 56 },
+            { name: 'Khuyến mãi Tặng cước', 'Đã giao': 150, 'Hoàn thành': 85, 'Tỷ lệ (%)': 56 },
             { name: 'CSKH MyTV', 'Đã giao': 200, 'Hoàn thành': 180, 'Tỷ lệ (%)': 90 }
         );
     }
+
+    const staffProgressData = batches.map(batch => {
+        const batchAssignments = filteredAssignments.filter(a => a.campaignId === batch.id);
+        // Find staff who have assignments in this batch (excluding empty/unassigned)
+        const staffInBatch = Array.from(new Set(batchAssignments.map(a => a.staffId))).filter(id => id && id !== 'unassigned');
+        
+        return {
+            campaignId: batch.id,
+            campaignName: batch.name,
+            totalBatch: batchAssignments.length,
+            staffData: staffInBatch.map(sId => {
+                const staffObj = users.find(u => u.id === sId) || { name: 'Unknown', unit: '' };
+                const sAssigns = batchAssignments.filter(a => a.staffId === sId);
+                const pending = sAssigns.filter(a => ['PENDING', 'UNASSIGNED'].includes(a.status)).length;
+                const inProgress = sAssigns.filter(a => a.status === 'IN_PROGRESS').length;
+                const processed = sAssigns.filter(a => ['COMPLETED', 'SUCCESS', 'FAILED', 'RESCHEDULED'].includes(a.status)).length; 
+                const total = sAssigns.length;
+                
+                return {
+                   staffId: sId,
+                   staffName: staffObj.name,
+                   unit: staffObj.unit,
+                   pending,
+                   inProgress,
+                   processed,
+                   total
+                }
+            }).sort((a,b) => b.total - a.total)
+        };
+    }).filter(b => b.totalBatch > 0).sort((a,b) => b.totalBatch - a.totalBatch);
 
     const statusData = [
       { name: 'Hoàn thành / Mới', value: successCount, color: '#10b981' }, 
@@ -133,7 +163,8 @@ export default function KPIOverview() {
       successCount,
       progressData,
       statusData,
-      topStaff
+      topStaff,
+      staffProgressData
     };
   }, [assignments, customers, potentialCustomers, categories, users, batches, selectedMonth, selectedYear]);
 
@@ -147,7 +178,7 @@ export default function KPIOverview() {
 
   const { 
     totalBatches, totalAssignments, totalPotential, successCount, 
-    progressData, statusData, topStaff 
+    progressData, statusData, topStaff, staffProgressData
   } = dashboardData;
 
   const CustomTooltip = ({ active, payload, label }: any) => {
@@ -380,7 +411,7 @@ export default function KPIOverview() {
       </div>
 
       {/* Secondary Bottom Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
          
          <Card className="rounded-xl shadow-sm border-slate-100 bg-white flex flex-col">
             <CardHeader className="pb-2 shrink-0 border-b border-slate-50 mb-2 px-4 pt-6 flex flex-row items-center justify-between">
@@ -425,6 +456,76 @@ export default function KPIOverview() {
                    </div>
                  )}
                </div>
+            </CardContent>
+         </Card>
+
+         <Card className="lg:col-span-2 rounded-xl shadow-sm border-slate-100 bg-white flex flex-col">
+            <CardHeader className="pb-2 shrink-0 border-b border-slate-50 mb-2 px-4 pt-6">
+              <div>
+                 <CardTitle className="text-sm font-black text-slate-800 uppercase tracking-wide flex items-center gap-2">
+                    Tiến độ chi tiết từng nhân sự
+                 </CardTitle>
+                 <CardDescription className="text-xs font-bold text-slate-400 mt-1.5">Mới tiếp nhận / Đang triển khai / Đã xử lý theo chiến dịch</CardDescription>
+              </div>
+            </CardHeader>
+            <CardContent className="flex-1 min-h-0 overflow-y-auto p-0 custom-scrollbar relative">
+               {staffProgressData.length > 0 ? (
+                 <div className="w-full">
+                    <table className="w-full text-left text-sm whitespace-nowrap">
+                       <thead className="bg-slate-50/80 sticky top-0 z-10 font-bold text-[10px] uppercase text-slate-500 tracking-wider">
+                          <tr>
+                             <th className="px-4 py-3">Chiến dịch / Nhân sự</th>
+                             <th className="px-4 py-3 text-center">Mới tiếp nhận</th>
+                             <th className="px-4 py-3 text-center">Đang triển khai</th>
+                             <th className="px-4 py-3 text-center">Đã xử lý</th>
+                             <th className="px-4 py-3 text-center text-blue-600">Tổng</th>
+                          </tr>
+                       </thead>
+                       <tbody className="divide-y divide-slate-50">
+                          {staffProgressData.map((campaign) => (
+                             <React.Fragment key={campaign.campaignId}>
+                               <tr className="bg-blue-50/30">
+                                  <td colSpan={5} className="px-4 py-2 font-black text-xs text-blue-700 tracking-tight uppercase">
+                                     {campaign.campaignName}
+                                  </td>
+                               </tr>
+                               {campaign.staffData.map(staff => (
+                                  <tr key={staff.staffId} className="hover:bg-slate-50/50 transition-colors">
+                                     <td className="px-4 py-3">
+                                        <div className="font-bold text-[13px] text-slate-700">{staff.staffName}</div>
+                                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{staff.unit || "N/A"}</div>
+                                     </td>
+                                     <td className="px-4 py-3 text-center">
+                                        {staff.pending > 0 ? (
+                                           <span className="inline-flex items-center justify-center w-6 h-6 rounded bg-red-100 text-red-700 font-bold text-xs">{staff.pending}</span>
+                                        ) : <span className="text-slate-300 font-medium">-</span>}
+                                     </td>
+                                     <td className="px-4 py-3 text-center">
+                                        {staff.inProgress > 0 ? (
+                                           <span className="inline-flex items-center justify-center w-6 h-6 rounded bg-blue-100 text-blue-700 font-bold text-xs">{staff.inProgress}</span>
+                                        ) : <span className="text-slate-300 font-medium">-</span>}
+                                     </td>
+                                     <td className="px-4 py-3 text-center">
+                                        {staff.processed > 0 ? (
+                                           <span className="inline-flex items-center justify-center w-6 h-6 rounded bg-emerald-100 text-emerald-700 font-bold text-xs">{staff.processed}</span>
+                                        ) : <span className="text-slate-300 font-medium">-</span>}
+                                     </td>
+                                     <td className="px-4 py-3 text-center font-black text-slate-800">
+                                        {staff.total}
+                                     </td>
+                                  </tr>
+                               ))}
+                             </React.Fragment>
+                          ))}
+                       </tbody>
+                    </table>
+                 </div>
+               ) : (
+                 <div className="w-full h-full min-h-[200px] flex gap-2 flex-col items-center justify-center text-slate-400 font-medium text-sm">
+                    <Target className="w-8 h-8 opacity-20" />
+                    Chưa có giao việc chi tiết
+                 </div>
+               )}
             </CardContent>
          </Card>
       </div>
