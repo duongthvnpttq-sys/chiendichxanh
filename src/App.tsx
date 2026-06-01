@@ -2,7 +2,6 @@ import { getRoutePermissions } from "@/src/services/permissionService";
 import React, { useState, useEffect } from "react";
 import VNPTLayout from "./components/layout/VNPTLayout";
 import KPIOverview from "./components/dashboard/KPIOverview";
-import RealtimeRanking from "./components/dashboard/RealtimeRanking";
 import MyTasks from "./components/tasks/MyTasks";
 import UserAssignments from "./components/assignments/UserAssignments";
 import UserManagement from "./components/users/UserManagement";
@@ -241,8 +240,6 @@ function renderPage(page: string, onNavigate: (page: string) => void, userRole: 
   switch (page) {
     case 'dashboard':
       return <KPIOverview />;
-    case 'rankings':
-      return <RealtimeRanking />;
     case 'users':
       return <UserManagement />;
     case 'tasks':

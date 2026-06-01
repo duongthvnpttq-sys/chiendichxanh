@@ -12,7 +12,6 @@ export const getRoutePermissions = (): Record<string, string[]> => {
            
            return {
               dashboard: ['admin', 'manager', 'staff', 'collaborator'],
-              rankings: ['admin', 'manager', 'staff', 'collaborator'],
               users: injectAdmin(getKeys('Nhân sự')),
               assignments: injectAdmin(getKeys('Giao khách hàng')),
               archive: injectAdmin(getKeys('báo cáo')),
@@ -26,7 +25,6 @@ export const getRoutePermissions = (): Record<string, string[]> => {
     
     return {
       dashboard: ['admin', 'manager', 'staff', 'collaborator'],
-      rankings: ['admin', 'manager', 'staff', 'collaborator'],
       users: ['admin', 'manager'],
       assignments: ['admin', 'manager'],
       archive: ['admin', 'manager'],

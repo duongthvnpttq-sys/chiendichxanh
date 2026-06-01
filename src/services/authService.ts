@@ -389,8 +389,14 @@ export const authService = {
         let passes = savedPassesStr ? JSON.parse(savedPassesStr) : {};
         passes[currentUser.uid] = passHash;
         localStorage.setItem("vnpt_passwords", JSON.stringify(passes));
+        
+        // Push the new passHash to Supabase custom vnpt_passwords table
+        await supabase.from("vnpt_passwords").upsert([{
+          user_id: currentUser.uid,
+          password_hash: passHash
+        }]);
       } catch (e) {
-        console.error("Lỗi cập nhật mật khẩu local:", e);
+        console.error("Lỗi cập nhật mật khẩu custom mock users:", e);
       }
     }
   },

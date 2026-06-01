@@ -106,7 +106,7 @@ export const notificationService = {
   showNativeNotification(title: string, body: string) {
     if (!("Notification" in window)) return;
     
-    const options: any = { 
+    const options: NotificationOptions = { 
       body, 
       icon: '/favicon.ico',
       vibrate: [200, 100, 200, 100, 200, 100, 200], // Thêm rung (nếu thiết bị hỗ trợ)
