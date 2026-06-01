@@ -64,7 +64,7 @@ export default function App() {
       if (loggedInUser.role?.toLowerCase() !== 'admin' && loggedInUser.role?.toLowerCase() !== 'manager') {
          setCurrentPage('dashboard');
       }
-      toast.success("Đăng nhập thành công qua hệ thống xác thực!");
+      toast.success("Đăng nhập thành công!");
     } catch (error: any) {
       toast.error(error.message || "Lỗi đăng nhập không xác định");
     } finally {

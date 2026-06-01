@@ -269,7 +269,7 @@ export const authService = {
         }
         return user;
       } else {
-        throw new Error('Sai mật khẩu (Local/Offline)');
+        throw new Error('Sai tài khoản hoặc mật khẩu');
       }
     }
     
@@ -277,12 +277,12 @@ export const authService = {
       if (supabaseAuthErrorMsg.toLowerCase().includes('email not confirmed')) {
         throw new Error('Tài khoản của bạn chưa được xác nhận Email (Vui lòng kiểm tra email của bạn hoặc liên hệ Admin).');
       } else if (supabaseAuthErrorMsg.toLowerCase().includes('invalid login credentials')) {
-        throw new Error('Sai tài khoản hoặc mật khẩu Supabase (' + supabaseAuthErrorMsg + ')');
+        throw new Error('Sai tài khoản hoặc mật khẩu');
       }
-      throw new Error(`Lỗi đăng nhập hệ thống Supabase: ${supabaseAuthErrorMsg}`);
+      throw new Error(`Lỗi đăng nhập hệ thống: ${supabaseAuthErrorMsg}`);
     }
 
-    throw new Error('Tài khoản hoặc mật khẩu không chính xác hoặc chưa được đăng ký qua Supabase Auth');
+    throw new Error('Sai tài khoản hoặc mật khẩu');
   },
 
   async signUp(email: string, pass: string, profile: { name: string; username: string; phone: string; role: UserRole; unit: string; code: string }): Promise<UserProfile> {
