@@ -254,16 +254,16 @@ export default function KPIOverview() {
                </ResponsiveContainer>
                {/* Custom Data Labels pointing out exactly like the image */}
                <div className="absolute top-[10%] left-[5%] text-[11px] text-center w-20">
-                  <div className="font-bold text-[#ff9800]">{dData.pieData[0].value} ({dData.pieData[0].pct}%)</div>
-                  <div className="text-slate-600 leading-tight mt-0.5">Nhiệm vụ chờ thực hiện</div>
+                  <div className="font-bold text-[#ff9800]">{dData.pendingMonth} ({dData.pieTotal ? Math.round((dData.pendingMonth/dData.pieTotal)*100) : 0}%)</div>
+                  <div className="text-slate-600 leading-tight mt-0.5">Khách hàng chờ</div>
                </div>
                <div className="absolute top-[10%] right-[10%] text-[11px] text-center w-24">
-                  <div className="font-bold text-[#0bb720]">{dData.pieData[2].value} ({dData.pieData[2].pct}%)</div>
-                  <div className="text-slate-600 leading-tight mt-0.5">Nhiệm vụ đã hoàn thành</div>
+                  <div className="font-bold text-[#0bb720]">{dData.completedMonth} ({dData.pieTotal ? Math.round((dData.completedMonth/dData.pieTotal)*100) : 0}%)</div>
+                  <div className="text-slate-600 leading-tight mt-0.5">Đã chốt đơn</div>
                </div>
                <div className="absolute bottom-[0%] left-[20%] text-[11px] text-center w-24">
-                  <div className="font-bold text-[#0052cc]">{dData.pieData[1].value} ({dData.pieData[1].pct}%)</div>
-                  <div className="text-slate-600 leading-tight mt-0.5">Nhiệm vụ đang thực hiện</div>
+                  <div className="font-bold text-[#0052cc]">{dData.inProgressMonth} ({dData.pieTotal ? Math.round((dData.inProgressMonth/dData.pieTotal)*100) : 0}%)</div>
+                  <div className="text-slate-600 leading-tight mt-0.5">Đang tiếp cận</div>
                </div>
             </div>
          </Card>
@@ -284,7 +284,7 @@ export default function KPIOverview() {
                       <h3 className="text-[13px] font-bold text-slate-800 leading-tight line-clamp-1">{t.outcome || 'Nhiệm vụ chưa cập nhật chi tiết'}</h3>
                       <div className="flex justify-between items-center mt-2">
                          <div className="text-[11px] text-slate-500 space-y-1">
-                            <div className="flex items-center gap-1"><Calendar className="w-3 h-3" /> Hạn: {new Date(t.deadline!).toLocaleDateString('vi-VN')}</div>
+                            <div className="flex items-center gap-1"><Calendar className="w-3 h-3" /> Hạn: {t.deadline ? (!isNaN(new Date(t.deadline).getTime()) ? new Date(t.deadline).toLocaleDateString('vi-VN') : 'Lỗi ngày') : 'Chưa cập nhật'}</div>
                             <div className="flex items-center gap-1"><User className="w-3 h-3" /> Nhân sự: {users.find(u => u.id === t.staffId)?.name || 'Chưa gán'}</div>
                          </div>
                          <span className={cn("px-2 py-0.5 border text-[10px] font-bold rounded-full", 

@@ -1,5 +1,5 @@
 import { getRoutePermissions } from "@/src/services/permissionService";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Component, ErrorInfo } from "react";
 import VNPTLayout from "./components/layout/VNPTLayout";
 import KPIOverview from "./components/dashboard/KPIOverview";
 import MyTasks from "./components/tasks/MyTasks";
@@ -17,7 +17,48 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { authService, UserRole, UserProfile } from "./services/authService";
 
-export default function App() {
+class ErrorBoundary extends Component<{children: React.ReactNode}, {hasError: boolean, error: Error | null, info: ErrorInfo | null}> {
+  constructor(props: {children: React.ReactNode}) {
+    super(props);
+    this.state = { hasError: false, error: null, info: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    this.setState({ info });
+    console.error("ErrorBoundary caught an error", error, info);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: '20px', background: '#ffebee', color: '#b71c1c', fontFamily: 'monospace' }}>
+          <h2>Runtime Error Captured</h2>
+          <details style={{ whiteSpace: 'pre-wrap' }}>
+            <summary>Details</summary>
+            {this.state.error && this.state.error.toString()}
+            <br />
+            {this.state.info && this.state.info.componentStack}
+          </details>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+export default function AppWrapper() {
+  return (
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
+  );
+}
+
+function App() {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [currentPage, setCurrentPage] = useState("dashboard");
   const [isLoading, setIsLoading] = useState(true);
