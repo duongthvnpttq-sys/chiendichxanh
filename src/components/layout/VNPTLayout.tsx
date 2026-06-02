@@ -317,10 +317,10 @@ export default function VNPTLayout({ children, userRole, userName, onNavigate, c
       </motion.aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col overflow-hidden relative bg-[#f4f6fc]">
+      <main className="flex-1 flex flex-col overflow-hidden relative bg-[#EFF3F6]">
         {/* Header */}
         <header className={cn(
-          "bg-gradient-to-b from-[#fbfcff] to-[#e8f1f8] text-[#1c4b82] flex items-center justify-between px-6 border-b border-[#a0c5e8] shadow-sm z-40 shrink-0 relative overflow-hidden transition-all duration-300",
+          "bg-white text-slate-800 flex items-center justify-between px-6 border-b border-slate-200 shadow-sm z-40 shrink-0 relative overflow-hidden transition-all duration-300",
           isMobile && isScrollingDown ? "h-0 opacity-0 pointer-events-none" : "h-14 opacity-100"
         )}>
           
@@ -478,7 +478,7 @@ export default function VNPTLayout({ children, userRole, userName, onNavigate, c
         </header>
 
         {/* Viewport */}
-        <div className={cn("flex-1 flex flex-col overflow-hidden p-4 md:p-6 bg-slate-50 transition-all duration-300", isMobile && (isScrollingDown ? "pb-4" : "pb-24"))}>
+        <div className={cn("flex-1 flex flex-col overflow-hidden p-4 md:p-6 bg-transparent transition-all duration-300", isMobile && (isScrollingDown ? "pb-4" : "pb-24"))}>
           <AnimatePresence mode="wait">
             <motion.div
               key={currentPage}
