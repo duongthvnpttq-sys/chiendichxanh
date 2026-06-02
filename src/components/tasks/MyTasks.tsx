@@ -143,11 +143,19 @@ export default function MyTasks() {
       const getPos = (options: PositionOptions) => {
         navigator.geolocation.getCurrentPosition(
           (pos) => {
-            setLocation({
+            const newLoc = {
               lat: pos.coords.latitude,
               lng: pos.coords.longitude
-            });
+            };
+            setLocation(newLoc);
             setCheckInDone(true);
+            
+            if (selectedTask) {
+              const fullLoc = { ...newLoc, timestamp: new Date().toISOString() };
+              dataService.updateAssignment(selectedTask.id!, { checkInLocation: fullLoc });
+              setSelectedTask({ ...selectedTask, checkInLocation: fullLoc });
+            }
+            
             resolve(pos);
           },
           (err) => {
@@ -213,9 +221,14 @@ export default function MyTasks() {
               if (!ctx) {
                 const fallbackUrl = event.target?.result as string;
                 const existingImages = selectedTask.images || [];
+                const newImagesFallback = [...existingImages, fallbackUrl];
+                
                 await dataService.updateAssignment(selectedTask.id!, {
-                  images: [...existingImages, fallbackUrl]
+                  images: newImagesFallback
                 });
+                
+                setSelectedTask({ ...selectedTask, images: newImagesFallback });
+                
                 toast.success("Tải ảnh thành công!");
                 setLoading(false);
                 return;
@@ -250,9 +263,13 @@ export default function MyTasks() {
               const compressedSizeKB = Math.round((compressedUrl.length * 0.75) / 1024);
 
               const existingImages = selectedTask.images || [];
+              const newImages = [...existingImages, compressedUrl];
+              
               await dataService.updateAssignment(selectedTask.id!, {
-                images: [...existingImages, compressedUrl]
+                images: newImages
               });
+              
+              setSelectedTask({ ...selectedTask, images: newImages });
 
               toast.success(`Đã tự động tối ưu nén ảnh xuống mức gọn nhẹ tối đa: ${compressedSizeKB} KB (Giảm ${Math.round(Math.max(0, 100 - (compressedSizeKB / (originalSizeKB || 1) * 100)))}% dung lượng)`);
               setLoading(false);
@@ -549,6 +566,10 @@ export default function MyTasks() {
                    >
                       TIẾP NHẬN
                    </Button>
+                 ) : ['COMPLETED', 'SUCCESS', 'FAILED', 'RESCHEDULED'].includes(task.status) ? (
+                   <Button variant="ghost" size="sm" className="h-10 px-3 text-[11px] font-black text-slate-400 hover:bg-slate-50 rounded-xl gap-2 transition-transform group-hover:translate-x-1 active:scale-105">
+                      XEM PHIẾU <ChevronRight className="w-3.5 h-3.5" />
+                   </Button>
                  ) : (
                    <Button variant="ghost" size="sm" className="h-10 px-3 text-[11px] font-black text-[#005BAA] hover:bg-blue-50 rounded-xl gap-2 transition-transform group-hover:translate-x-1 active:scale-105">
                       XỬ LÝ <ChevronRight className="w-3.5 h-3.5" />
@@ -598,8 +619,12 @@ export default function MyTasks() {
             </DialogDescription>
           </div>
           
-          <div className="p-6 space-y-6 bg-white overflow-y-auto custom-scrollbar flex-1">
-             {/* Full campaign inputs and subscriber information segment */}
+           <div className="p-6 space-y-6 bg-white overflow-y-auto custom-scrollbar flex-1">
+             {(() => {
+               const isProcessed = selectedTask ? ['COMPLETED', 'SUCCESS', 'FAILED', 'RESCHEDULED'].includes(selectedTask.status) : false;
+               return (
+                 <>
+                   {/* Full campaign inputs and subscriber information segment */}
              <div className="bg-slate-50 p-4 rounded-3xl border border-slate-100/80 space-y-3">
                 <p className="text-[10px] font-black uppercase text-slate-500 tracking-wider flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#005BAA]" />
@@ -705,8 +730,9 @@ export default function MyTasks() {
 
              <div className="grid grid-cols-3 gap-1 md:gap-2">
                 <Button 
+                  disabled={isProcessed}
                   variant="outline" 
-                  className="h-28 flex flex-col gap-3 rounded-3xl border-slate-100 hover:bg-emerald-50 hover:border-emerald-200 transition-all text-center bg-emerald-50/10 text-emerald-600"
+                  className="h-28 flex flex-col gap-3 rounded-3xl border-slate-100 hover:bg-emerald-50 hover:border-emerald-200 transition-all text-center bg-emerald-50/10 text-emerald-600 disabled:opacity-50"
                   onClick={async () => {
                     if (selectedTask?.customer?.phone) {
                       toast.success(`Đang thực hiện cuộc gọi tới ${selectedTask.customer.phone}...`);
@@ -729,9 +755,10 @@ export default function MyTasks() {
                   </span>
                 </Button>
                 <Button 
+                  disabled={isProcessed}
                   variant="outline" 
                    className={cn(
-                    "h-28 flex flex-col gap-3 rounded-3xl border-slate-100 transition-all text-center",
+                    "h-28 flex flex-col gap-3 rounded-3xl border-slate-100 transition-all text-center disabled:opacity-50",
                     selectedTask?.images && selectedTask.images.length > 0 ? "bg-emerald-50 border-emerald-200" : "hover:bg-blue-50 hover:border-blue-200"
                   )}
                   onClick={handleUploadImage}
@@ -742,9 +769,10 @@ export default function MyTasks() {
                   </span>
                 </Button>
                 <Button 
+                  disabled={isProcessed}
                   variant="outline" 
                   className={cn(
-                    "h-28 flex flex-col gap-3 rounded-3xl border-slate-100 transition-all text-center",
+                    "h-28 flex flex-col gap-3 rounded-3xl border-slate-100 transition-all text-center disabled:opacity-50",
                     checkInDone ? "bg-emerald-50 border-emerald-200" : "hover:bg-blue-50 hover:border-blue-200"
                   )}
                   onClick={handleCheckIn}
@@ -760,47 +788,55 @@ export default function MyTasks() {
                 <label className="text-[11px] font-black uppercase text-slate-400 tracking-widest">Phản hồi từ hiện trường</label>
                 <textarea 
                   value={notes}
+                  disabled={isProcessed}
                   onChange={(e) => setNotes(e.target.value)}
-                  className="w-full min-h-[100px] p-5 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-medium focus:outline-none focus:ring-4 focus:ring-[#005BAA]/5 transition-all text-slate-700"
+                  className="w-full min-h-[100px] p-5 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-medium focus:outline-none focus:ring-4 focus:ring-[#005BAA]/5 transition-all text-slate-700 disabled:opacity-75"
                   placeholder="Ghi nhận ý kiến khách hàng, lý do thành công/thất bại..."
                 />
              </div>
 
-             <div className="grid grid-cols-2 gap-3">
-                <Button 
-                   disabled={isSubmitting}
-                   onClick={() => submitResult("FAILED")}
-                   variant="outline" 
-                   className="w-full font-black border-slate-100 text-slate-400 hover:bg-red-50 hover:text-red-600 h-14 rounded-2xl uppercase text-[11px] tracking-widest transition-colors"
-                >
-                  Thất bại
-                </Button>
-                <Button 
-                   disabled={isSubmitting}
-                  onClick={() => submitResult("RESCHEDULED")}
-                  variant="outline" 
-                  className="w-full font-black border-slate-100 text-slate-400 hover:bg-orange-50 hover:text-orange-600 h-14 rounded-2xl uppercase text-[11px] tracking-widest transition-colors"
-                >
-                  Hẹn gặp lại
-                </Button>
-             </div>
-             
-             {checkInDone && selectedTask?.images && selectedTask.images.length > 0 ? (
-               <Button 
-                 disabled={isSubmitting}
-                 onClick={() => submitResult("COMPLETED")}
-                 className="w-full font-black bg-emerald-600 hover:bg-emerald-700 h-16 rounded-2xl shadow-2xl shadow-emerald-200 uppercase text-xs tracking-[0.2em] transition-all hover:scale-[1.02] active:scale-[0.98]"
-               >
-                 {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "XÁC NHẬN HOÀN TẤT"}
-               </Button>
-             ) : (
-               <div className="w-full h-16 rounded-2xl flex items-center justify-center bg-orange-50 border border-orange-100 text-center px-4">
-                 <p className="text-[11px] font-bold text-orange-600 uppercase tracking-widest">
-                   <AlertCircle className="w-4 h-4 inline-block mr-2" />
-                   Vui lòng chụp ảnh & check-in GPS để hoàn tất
-                 </p>
-               </div>
+             {!isProcessed && (
+               <>
+                 {checkInDone ? (
+                   <>
+                     <div className="grid grid-cols-2 gap-3">
+                        <Button 
+                           disabled={isSubmitting}
+                           onClick={() => submitResult("FAILED")}
+                           variant="outline" 
+                           className="w-full font-black border-slate-100 text-slate-400 hover:bg-red-50 hover:text-red-600 h-14 rounded-2xl uppercase text-[11px] tracking-widest transition-colors"
+                        >
+                          Thất bại
+                        </Button>
+                        <Button 
+                           disabled={isSubmitting}
+                          onClick={() => submitResult("RESCHEDULED")}
+                          variant="outline" 
+                          className="w-full font-black border-slate-100 text-slate-400 hover:bg-orange-50 hover:text-orange-600 h-14 rounded-2xl uppercase text-[11px] tracking-widest transition-colors"
+                        >
+                          Hẹn gặp lại
+                        </Button>
+                     </div>
+                     <Button 
+                        disabled={isSubmitting}
+                        onClick={() => submitResult("COMPLETED")}
+                        className="w-full font-black bg-emerald-600 hover:bg-emerald-700 h-16 rounded-2xl shadow-2xl shadow-emerald-200 uppercase text-xs tracking-[0.2em] transition-all hover:scale-[1.02] active:scale-[0.98]"
+                      >
+                        {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "KHÓA PHIẾU NGHIỆM THU"}
+                      </Button>
+                   </>
+                 ) : (
+                   <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-center">
+                     <AlertCircle className="w-6 h-6 text-amber-500 mx-auto mb-2" />
+                     <p className="text-xs font-bold text-amber-700 uppercase tracking-wider">Vui lòng Check-in GPS</p>
+                     <p className="text-[10px] text-amber-600 mt-1">Xác thực vị trí hiện tại để hiển thị các lựa chọn Khóa phiếu / Báo cáo kết quả.</p>
+                   </div>
+                 )}
+               </>
              )}
+            </>
+           )
+         })()}
           </div>
         </DialogContent>
       </Dialog>
