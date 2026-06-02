@@ -727,7 +727,7 @@ export default function KPIOverview() {
               Gửi thông báo nhắc việc
             </DialogTitle>
             <DialogDescription>
-              Hệ thống sẽ tự động nhắn tin nhắc nhở các nhân sự đang có nhiệm vụ quá hạn hoặc sắp đến hạn qua Zalo/Email.
+              Hệ thống sẽ gửi thông báo trực tiếp qua ứng dụng đến các cá nhân được chọn.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-4">
@@ -782,17 +782,11 @@ export default function KPIOverview() {
              </div>
              
              <div className="space-y-3 pt-2">
-                 <h4 className="text-[13px] font-bold text-slate-700">Gửi nhắc nhở thông qua:</h4>
-                 <div className="flex gap-3">
-                    <label className="flex items-center gap-2 border rounded-lg p-3 flex-1 cursor-pointer hover:bg-slate-50 transition-colors border-blue-500 bg-blue-50/30">
-                       <input type="checkbox" className="rounded text-blue-600 w-4 h-4" defaultChecked />
-                       <span className="text-[14px] font-medium">Nhắn tin Zalo ZNS</span>
-                    </label>
-                    <label className="flex items-center gap-2 border border-slate-200 rounded-lg p-3 flex-1 cursor-pointer hover:bg-slate-50 transition-colors">
-                       <input type="checkbox" className="rounded text-blue-600 w-4 h-4" />
-                       <span className="text-[14px] font-medium">Email nhắc nhở</span>
-                    </label>
-                 </div>
+                 <h4 className="text-[13px] font-bold text-slate-700">Nội dung thông báo (tùy chọn):</h4>
+                 <textarea 
+                     className="w-full text-[13px] border border-slate-200 rounded-lg p-3 min-h-[80px] focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none transition-all"
+                     placeholder="Nhập nội dung nhắc nhở để gửi trực tiếp cho nhân viên..."
+                 ></textarea>
              </div>
           </div>
           <DialogFooter>
@@ -801,7 +795,7 @@ export default function KPIOverview() {
                className="bg-[#b91c1c] hover:bg-[#991b1b] text-white disabled:opacity-50 disabled:cursor-not-allowed" 
                disabled={selectedStaffIds.length === 0}
                onClick={() => {
-                 toast.success(`Đã gửi thành công nhắc việc tới ${selectedStaffIds.length} nhân sự.`);
+                 toast.success(`Đã gửi thông báo nhắc việc trực tiếp tới ${selectedStaffIds.length} nhân sự.`);
                  setIsReminderOpen(false);
                }}
             >
