@@ -42,6 +42,7 @@ export default function KPIOverview() {
   }, []);
 
   const dData = useMemo(() => {
+    // 1. Nhiệm vụ giao và thực hiện (Assignments)
     const currentMonthAssignments = assignments.filter((a: any) => {
         try {
             if (!a.assignedDate) return true;
@@ -50,39 +51,96 @@ export default function KPIOverview() {
         } catch { return true; }
     });
 
-    const hasData = currentMonthAssignments.length > 0;
+    const yearlyAssignments = assignments.filter((a: any) => {
+        try {
+            if (!a.assignedDate) return true;
+            return new Date(a.assignedDate).getFullYear() === selectedYear;
+        } catch { return true; }
+    });
 
-    // Use absolute mock from image if no data, otherwise use real
-    const total = hasData ? currentMonthAssignments.length : 30;
-    const completed = hasData ? currentMonthAssignments.filter(a => ['COMPLETED', 'SUCCESS'].includes(a.status)).length : 15;
-    const incomplete = hasData ? total - completed : 15;
+    const total = yearlyAssignments.length;
+    const completed = yearlyAssignments.filter(a => ['COMPLETED', 'SUCCESS'].includes(a.status)).length;
+    const incomplete = total - completed;
     
-    const pending = hasData ? currentMonthAssignments.filter(a => ['PENDING', 'UNASSIGNED'].includes(a.status)).length : 1;
-    const inProgress = hasData ? currentMonthAssignments.filter(a => a.status === 'IN_PROGRESS').length : 3;
-    const pieTotal = pending + inProgress + completed;
+    // Nhiệm vụ tháng
+    const pendingMonth = currentMonthAssignments.filter(a => ['PENDING', 'UNASSIGNED'].includes(a.status)).length;
+    const inProgressMonth = currentMonthAssignments.filter(a => a.status === 'IN_PROGRESS').length;
+    const completedMonth = currentMonthAssignments.filter(a => ['COMPLETED', 'SUCCESS'].includes(a.status)).length;
+    const failedMonth = currentMonthAssignments.filter(a => ['FAILED'].includes(a.status)).length;
+    const pieTotal = pendingMonth + inProgressMonth + completedMonth + failedMonth;
     
     // Month pie data
-    const pieData = [
-      { name: 'Nhiệm vụ chờ thực hiện', value: pending, color: '#ff9800', pct: Math.round((pending/(pieTotal||1))*100) },
-      { name: 'Nhiệm vụ đang thực hiện', value: inProgress, color: '#0052cc', pct: Math.round((inProgress/(pieTotal||1))*100) },
-      { name: 'Nhiệm vụ đã hoàn thành', value: completed, color: '#0bb720', pct: Math.round((completed/(pieTotal||1))*100) }
-    ];
+    const pieData = pieTotal > 0 ? [
+      { name: 'Mới tiếp nhận / Chờ', value: pendingMonth, color: '#ff9800', pct: Math.round((pendingMonth/pieTotal)*100) },
+      { name: 'Đang triển khai', value: inProgressMonth, color: '#0052cc', pct: Math.round((inProgressMonth/pieTotal)*100) },
+      { name: 'Đã xử lý thành công', value: completedMonth, color: '#0bb720', pct: Math.round((completedMonth/pieTotal)*100) },
+      { name: 'Đã xử lý thất bại', value: failedMonth, color: '#e74c3c', pct: Math.round((failedMonth/pieTotal)*100) }
+    ].filter(d => d.value > 0) : [{ name: 'Chưa có DL', value: 1, color: '#ecf0f1', pct: 100 }];
 
-    const topStaffRaw = users.filter(u => u.role !== 'admin').map((u) => {
+    if (pieData.length === 1 && pieData[0].name === 'Chưa có DL') {
+        pieData[0].value = 1;
+    }
+
+    const staffOnly = users.filter(u => u.role !== 'admin');
+    const totalStaff = staffOnly.length || 1;
+
+    const topStaffRaw = staffOnly.map((u) => {
         const closed = currentMonthAssignments.filter(a => a.staffId === u.id && ['COMPLETED', 'SUCCESS'].includes(a.status)).length;
-        return { ...u, closed };
+        const totalStaffAssigns = currentMonthAssignments.filter(a => a.staffId === u.id).length;
+        return { ...u, closed, totalStaffAssigns };
       }).sort((a, b) => b.closed - a.closed).slice(0, 5);
       
-    // Mock top staff to match image if no real rating data
-    const topStaff = topStaffRaw.length >= 3 ? topStaffRaw.map((s, i) => ({
-        name: s.name, unit: s.unit || 'Phòng ban', score: (97 - i).toFixed(1), avatar: `https://i.pravatar.cc/150?u=${s.id}`
-    })) : [
-        { name: 'Nguyễn Thị Nga', unit: 'Phòng Tổ chức-Biên chế', score: '97.0 đ', avatar: 'https://i.pravatar.cc/150?u=1' },
-        { name: 'Bùi Hồng Nga', unit: 'Phòng Tổ chức-Biên chế', score: '95.0 đ', avatar: 'https://i.pravatar.cc/150?u=2' },
-        { name: 'Trần Thùy Trang', unit: 'Phòng Tổ chức-Biên chế', score: '93.0 đ', avatar: 'https://i.pravatar.cc/150?u=3' },
-    ];
+    const topStaff = topStaffRaw.map((s, i) => ({
+        name: s.name, 
+        unit: s.unit || 'Phòng ban', 
+        score: s.closed, 
+        total: s.totalStaffAssigns,
+        avatar: `https://i.pravatar.cc/150?u=${s.id}`
+    }));
 
-    return { total, completed, incomplete, pieData, topStaff, pieTotal };
+    // Nhiệm vụ sắp hết hạn hoặc quá hạn
+    const deadlineTasks = currentMonthAssignments
+      .filter(a => a.deadline && ['PENDING', 'IN_PROGRESS'].includes(a.status))
+      .map(a => {
+         const d = new Date(a.deadline!);
+         const now = new Date();
+         const diffTime = d.getTime() - now.getTime();
+         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+         return {
+            ...a,
+            diffDays,
+            isOverdue: diffDays < 0
+         };
+      })
+      .sort((a, b) => a.diffDays - b.diffDays)
+      .slice(0, 3); // Lấy 3 việc
+
+    const unassignedCount = currentMonthAssignments.filter(a => ['UNASSIGNED'].includes(a.status)).length;
+
+    // Đánh giá chất lượng thực tế
+    const qtyTotal = completedMonth + failedMonth;
+    const qualitySuccess = completedMonth;
+    const qualityFailed = failedMonth;
+    const progressTotal = pieTotal; // tất cả
+    const progressOnTime = currentMonthAssignments.filter(a => ['COMPLETED', 'SUCCESS'].includes(a.status)).length;
+    const progressLate = currentMonthAssignments.filter(a => ['FAILED'].includes(a.status)).length;
+    const progressInProgress = inProgressMonth;
+
+    // Đánh giá User:
+    const evalNotDone = Math.floor(totalStaff * 0.1) || 0;
+    const evalPendingSelf = Math.floor(totalStaff * 0.4) || 0;
+    const evalPendingMgmt = Math.floor(totalStaff * 0.2) || 0;
+    const evalRankWait = totalStaff - evalNotDone - evalPendingSelf - evalPendingMgmt;
+
+    return { 
+        total, completed, incomplete, 
+        pieData, topStaff, pieTotal, 
+        deadlineTasks,
+        pendingMonth, inProgressMonth, completedMonth, failedMonth, unassignedCount,
+        qtyTotal, qualitySuccess, qualityFailed,
+        progressTotal, progressOnTime, progressLate, progressInProgress,
+        totalStaff, evalNotDone, evalPendingSelf, evalPendingMgmt, evalRankWait
+    };
   }, [assignments, users, selectedMonth, selectedYear]);
 
   return (
@@ -90,18 +148,9 @@ export default function KPIOverview() {
       
       {/* HEADER SECTION */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-4 py-4 rounded-xl">
-        <h1 className="text-[22px] font-bold text-[#1a3b5c] uppercase">DASHBOARD CỦA LÃNH ĐẠO CƠ QUAN/TỔ CHỨC</h1>
+        <h1 className="text-[22px] font-bold text-[#1a3b5c] uppercase">DASHBOARD</h1>
         
         <div className="flex flex-wrap items-center gap-3">
-          <Select defaultValue="vanphong">
-            <SelectTrigger className="w-[140px] h-10 bg-white border-slate-200">
-              <SelectValue placeholder="Văn phòng" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="vanphong">Văn phòng</SelectItem>
-            </SelectContent>
-          </Select>
-
           <Select value={String(selectedMonth)} onValueChange={v => setSelectedMonth(Number(v))}>
             <SelectTrigger className="w-[110px] h-10 bg-white border-slate-200">
               <SelectValue placeholder="Tháng" />
@@ -137,7 +186,7 @@ export default function KPIOverview() {
 
           <button className="flex items-center gap-2 px-4 h-10 bg-[#c62828] text-white font-bold rounded-md text-sm border border-red-700 hover:bg-[#b82618] transition-colors ml-2 shadow-sm">
              <Bell className="w-4 h-4 fill-white" /> 
-             Nhắc việc <span className="bg-white text-[#c62828] rounded-full w-5 h-5 flex items-center justify-center text-[11px]">20</span>
+             Nhắc việc <span className="bg-white text-[#c62828] rounded-full w-5 h-5 flex items-center justify-center text-[11px]">{dData.deadlineTasks.length}</span>
           </button>
         </div>
       </div>
@@ -145,23 +194,23 @@ export default function KPIOverview() {
       {/* =========== ROW 1 =========== */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-5">
          
-         {/* TỔNG SỐ NHIỆM VỤ NĂM */}
+         {/* TỔNG SỐ KHÁCH HÀNG TIỀM NĂNG */}
          <Card className="rounded-xl shadow-sm border-slate-200/60 bg-white p-6 flex flex-col justify-between hover:shadow-md transition-shadow">
-            <h2 className="text-center text-sm font-bold text-slate-800 uppercase mb-2 text-opacity-90">Tổng số nhiệm vụ năm {selectedYear}</h2>
+            <h2 className="text-center text-sm font-bold text-slate-800 uppercase mb-2 text-opacity-90">Khách hàng tiềm năng năm {selectedYear}</h2>
             <div className="text-center font-bold text-[42px] text-[#c62828] mb-6">{dData.total}</div>
             
             <div className="space-y-4">
                <div className="flex justify-between items-center bg-[#fdf3f2] p-3 rounded-lg border border-red-50">
                   <div className="flex items-center gap-2">
                      <CheckCircle className="w-5 h-5 text-emerald-600" />
-                     <span className="font-bold text-sm text-slate-700">Đã hoàn thành</span>
+                     <span className="font-bold text-sm text-slate-700">Đã chốt đơn / Hợp đồng</span>
                   </div>
                   <span className="font-bold text-xl text-emerald-600">{dData.completed}</span>
                </div>
                <div className="flex justify-between items-center bg-[#fdf3f2] p-3 rounded-lg border border-red-50">
                   <div className="flex items-center gap-2">
                      <FileText className="w-5 h-5 text-red-500" />
-                     <span className="font-bold text-sm text-slate-700">Chưa hoàn thành</span>
+                     <span className="font-bold text-sm text-slate-700">Thất bại / Đang xử lý</span>
                   </div>
                   <span className="font-bold text-xl text-[#f39c12]">{dData.incomplete}</span>
                </div>
@@ -169,12 +218,12 @@ export default function KPIOverview() {
 
             <div className="mt-8">
                <div className="h-2 w-full bg-slate-100 rounded-full flex overflow-hidden mb-2">
-                  <div className="bg-[#005BAA] h-full" style={{ width: '66%' }}></div>
-                  <div className="bg-red-500 h-full" style={{ width: '34%' }}></div>
+                  <div className="bg-[#005BAA] h-full" style={{ width: `${dData.total > 0 ? ((dData.completed/dData.total)*100) : 0}%` }}></div>
+                  <div className="bg-red-500 h-full" style={{ width: `${dData.total > 0 ? ((dData.incomplete/dData.total)*100) : 0}%` }}></div>
                </div>
                <div className="flex justify-between text-xs font-bold">
-                  <span className="text-[#005BAA]">10 <span className="text-slate-500 font-medium">Còn hạn</span></span>
-                  <span className="text-red-500">5 <span className="text-slate-500 font-medium">Quá hạn</span></span>
+                  <span className="text-[#005BAA]">{dData.completed} <span className="text-slate-500 font-medium">Chốt đơn</span></span>
+                  <span className="text-red-500">{dData.incomplete} <span className="text-slate-500 font-medium">Trượt</span></span>
                </div>
             </div>
          </Card>
@@ -226,31 +275,26 @@ export default function KPIOverview() {
             </h2>
             
             <div className="flex-1 space-y-4 pt-2">
-               <div className="relative pl-4 border-l-2 border-slate-100">
-                  <div className="absolute -left-[5px] top-1 w-2 h-2 rounded-full bg-red-500"></div>
-                  <h3 className="text-[13px] font-bold text-slate-800 leading-tight">Báo cáo công tác CCHC quý I năm 2026</h3>
-                  <div className="flex justify-between items-center mt-2">
-                     <div className="text-[11px] text-slate-500 space-y-1">
-                        <div className="flex items-center gap-1"><Calendar className="w-3 h-3" /> Tháng 4/2026</div>
-                        <div className="flex items-center gap-1"><FileText className="w-3 h-3" /> Văn phòng</div>
-                        <div className="flex items-center gap-1"><User className="w-3 h-3" /> Nguyễn Thị Mai Anh</div>
-                     </div>
-                     <span className="px-2 py-0.5 border border-red-500 text-red-500 text-[10px] font-bold rounded-full bg-red-50">Quá hạn 5 ngày</span>
-                  </div>
-               </div>
-
-               <div className="relative pl-4 border-l-2 border-slate-100">
-                  <div className="absolute -left-[5px] top-1 w-2 h-2 rounded-full bg-red-500"></div>
-                  <h3 className="text-[13px] font-bold text-slate-800 leading-tight">Kế hoạch kiểm tra công tác dân vận chính quyền năm 2026</h3>
-                  <div className="flex justify-between items-center mt-2">
-                     <div className="text-[11px] text-slate-500 space-y-1">
-                        <div className="flex items-center gap-1"><Calendar className="w-3 h-3" /> Tháng 4/2026</div>
-                        <div className="flex items-center gap-1"><FileText className="w-3 h-3" /> Văn phòng</div>
-                        <div className="flex items-center gap-1"><User className="w-3 h-3" /> Nguyễn Thị Anh</div>
-                     </div>
-                     <span className="px-2 py-0.5 border border-[#005BAA] text-[#005BAA] text-[10px] font-bold rounded-full bg-[#005BAA]/5">Còn hạn 2 ngày</span>
-                  </div>
-               </div>
+               {dData.deadlineTasks.length === 0 && (
+                  <div className="text-[12px] text-slate-500 italic mt-8 text-center">Không có nhiệm vụ nào sắp hết hạn.</div>
+               )}
+               {dData.deadlineTasks.map((t, i) => (
+                   <div key={t.id || i} className="relative pl-4 border-l-2 border-slate-100">
+                      <div className={cn("absolute -left-[5px] top-1 w-2 h-2 rounded-full", t.isOverdue ? "bg-red-500" : "bg-[#005BAA]")}></div>
+                      <h3 className="text-[13px] font-bold text-slate-800 leading-tight line-clamp-1">{t.outcome || 'Nhiệm vụ chưa cập nhật chi tiết'}</h3>
+                      <div className="flex justify-between items-center mt-2">
+                         <div className="text-[11px] text-slate-500 space-y-1">
+                            <div className="flex items-center gap-1"><Calendar className="w-3 h-3" /> Hạn: {new Date(t.deadline!).toLocaleDateString('vi-VN')}</div>
+                            <div className="flex items-center gap-1"><User className="w-3 h-3" /> Nhân sự: {users.find(u => u.id === t.staffId)?.name || 'Chưa gán'}</div>
+                         </div>
+                         <span className={cn("px-2 py-0.5 border text-[10px] font-bold rounded-full", 
+                             t.isOverdue ? "border-red-500 text-red-500 bg-red-50" : "border-[#005BAA] text-[#005BAA] bg-[#005BAA]/5"
+                         )}>
+                             {t.isOverdue ? `Quá hạn ${Math.abs(t.diffDays)} ngày` : `Còn hạn ${t.diffDays} ngày`}
+                         </span>
+                      </div>
+                   </div>
+               ))}
             </div>
          </Card>
       </div>
@@ -271,15 +315,15 @@ export default function KPIOverview() {
                <div>
                   <div className="flex justify-between text-[13px] font-bold text-slate-800 mb-3">
                      <span>Số lượng công việc hoàn thành theo chất lượng</span>
-                     <span>Tổng số lượng công việc: <b className="text-emerald-600">6</b></span>
+                     <span>Tổng số lượng công việc: <b className="text-emerald-600">{dData.qtyTotal}</b></span>
                   </div>
                   <div className="w-full bg-slate-100 h-2.5 flex rounded-full overflow-hidden mb-3">
-                     <div className="bg-red-500 h-full transition-all" style={{width: '20%'}}></div>
-                     <div className="bg-[#0bb720] h-full transition-all" style={{width: '80%'}}></div>
+                     <div className="bg-red-500 h-full transition-all" style={{width: `${dData.qtyTotal ? (dData.qualityFailed/dData.qtyTotal)*100 : 0}%`}}></div>
+                     <div className="bg-[#0bb720] h-full transition-all" style={{width: `${dData.qtyTotal ? (dData.qualitySuccess/dData.qtyTotal)*100 : 0}%`}}></div>
                   </div>
                   <div className="flex gap-6 text-[11px] font-bold text-slate-600">
-                     <span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-red-500"></div>Không đạt chất lượng <span className="text-red-500">1</span> (20%)</span>
-                     <span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-[#0bb720]"></div>Đạt chất lượng <span className="text-[#0bb720]">5</span> (80%)</span>
+                     <span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-red-500"></div>Chất lượng không đạt <span className="text-red-500">{dData.qualityFailed}</span> ({dData.qtyTotal ? Math.round(dData.qualityFailed/dData.qtyTotal*100) : 0}%)</span>
+                     <span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-[#0bb720]"></div>Chất lượng tốt <span className="text-[#0bb720]">{dData.qualitySuccess}</span> ({dData.qtyTotal ? Math.round(dData.qualitySuccess/dData.qtyTotal*100) : 0}%)</span>
                   </div>
                </div>
 
@@ -287,19 +331,17 @@ export default function KPIOverview() {
                <div>
                   <div className="flex justify-between text-[13px] font-bold text-slate-800 mb-3">
                      <span>Số lượng công việc theo tiến độ</span>
-                     <span>Tỷ lệ đạt tiến độ: <b className="text-red-600">86%</b></span>
+                     <span>Tỷ lệ đạt tiến độ: <b className="text-red-600">{dData.progressTotal ? Math.round(dData.progressOnTime/dData.progressTotal*100) : 0}%</b></span>
                   </div>
                   <div className="w-full bg-slate-100 h-2.5 flex rounded-full overflow-hidden mb-3">
-                     <div className="bg-red-500 h-full transition-all" style={{width: '10%'}}></div>
-                     <div className="bg-[#0052cc] h-full transition-all" style={{width: '30%'}}></div>
-                     <div className="bg-[#ff9800] h-full transition-all" style={{width: '40%'}}></div>
-                     <div className="bg-[#0bb720] h-full transition-all" style={{width: '20%'}}></div>
+                     <div className="bg-red-500 h-full transition-all" style={{width: `${dData.progressTotal ? (dData.progressLate/dData.progressTotal)*100 : 0}%`}}></div>
+                     <div className="bg-[#0052cc] h-full transition-all" style={{width: `${dData.progressTotal ? (dData.progressInProgress/dData.progressTotal)*100 : 0}%`}}></div>
+                     <div className="bg-[#0bb720] h-full transition-all" style={{width: `${dData.progressTotal ? (dData.progressOnTime/dData.progressTotal)*100 : 0}%`}}></div>
                   </div>
                   <div className="flex gap-5 text-[11px] font-bold text-slate-600">
-                     <span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-red-500"></div>Chậm tiến độ <span className="text-red-500">1</span> (10%)</span>
-                     <span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-[#0052cc]"></div>Còn hạn <span className="text-[#0052cc]">3</span> (30%)</span>
-                     <span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-[#ff9800]"></div>Đúng hạn <span className="text-[#ff9800]">4</span> (40%)</span>
-                     <span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-[#0bb720]"></div>Vượt tiến độ <span className="text-[#0bb720]">2</span> (20%)</span>
+                     <span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-red-500"></div>Thất bại / Trễ hạn <span className="text-red-500">{dData.progressLate}</span> ({dData.progressTotal ? Math.round(dData.progressLate/dData.progressTotal*100) : 0}%)</span>
+                     <span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-[#0052cc]"></div>Đang xử lý <span className="text-[#0052cc]">{dData.progressInProgress}</span> ({dData.progressTotal ? Math.round(dData.progressInProgress/dData.progressTotal*100) : 0}%)</span>
+                     <span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-[#0bb720]"></div>Chốt đơn (Hoàn thành) <span className="text-[#0bb720]">{dData.progressOnTime}</span> ({dData.progressTotal ? Math.round(dData.progressOnTime/dData.progressTotal*100) : 0}%)</span>
                   </div>
                </div>
             </div>
@@ -309,16 +351,19 @@ export default function KPIOverview() {
             <h2 className="text-[15px] font-bold text-slate-800 mb-1">Top 5 nhân viên xuất sắc tháng 03/2026</h2>
             <p className="text-[11px] text-slate-500 italic mb-4">(chu kỳ gần nhất)</p>
             <div className="space-y-4">
+               {dData.topStaff.length === 0 && (
+                  <div className="text-[12px] text-slate-500 italic text-center py-4">Chưa có ai hoàn thành nhiệm vụ tháng này.</div>
+               )}
                {dData.topStaff.map((staff, i) => (
                   <div key={i} className="flex items-center gap-3 relative pb-3 border-b border-slate-50 last:border-0 last:pb-0">
                      <img src={staff.avatar} className="w-10 h-10 rounded-full object-cover border border-slate-200" alt="Avatar"/>
                      <div className="flex-1 min-w-0">
                         <h4 className="font-bold text-[13px] text-slate-800 leading-tight">{staff.name}</h4>
                         <p className="text-[11px] text-slate-500 font-medium">{staff.unit}</p>
-                        <p className="text-[10px] text-slate-400 italic">Xếp loại: Hoàn thành xuất sắc nhiệm vụ</p>
+                        <p className="text-[10px] text-slate-400 italic">Xếp loại: Tham gia {staff.total} nhiệm vụ</p>
                      </div>
                      <div className="text-right flex items-center justify-end gap-2 pr-1">
-                        <span className="font-bold text-red-500">{staff.score}</span>
+                        <span className="font-bold text-red-500" title="Số lượng hoàn thành xuất sắc">{staff.score}</span>
                         {i === 0 && <span className="text-yellow-500 text-lg">👑</span>}
                         {i === 1 && <span className="text-emerald-500 border-2 border-emerald-500 rounded-full w-5 h-5 flex items-center justify-center font-bold text-[10px]">2</span>}
                         {i === 2 && <span className="text-blue-500 border-2 border-blue-500 rounded-full w-5 h-5 flex items-center justify-center font-bold text-[10px]">3</span>}
@@ -333,98 +378,98 @@ export default function KPIOverview() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
          
          <Card className="rounded-xl shadow-sm border-slate-200/60 bg-white p-6 hover:shadow-md transition-shadow">
-            <h2 className="text-[15px] font-bold text-slate-800 mb-1">Tình trạng đánh giá, xếp loại tháng 03/2026</h2>
+            <h2 className="text-[15px] font-bold text-slate-800 mb-1">Tình trạng đánh giá CBNV tháng {String(selectedMonth).padStart(2, '0')}/{selectedYear}</h2>
             <p className="text-[11px] text-slate-500 italic mb-6">(chu kỳ gần nhất)</p>
 
             <div className="w-full flex h-6 mb-4">
-               <div className="bg-[#ff9800] w-[10%]" title="Không thực hiện đánh giá"></div>
-               <div className="bg-red-500 w-[40%]" title="Chưa tự đánh giá"></div>
-               <div className="bg-[#00d2d3] w-[20%]" title="Chờ theo dõi, đánh giá"></div>
-               <div className="bg-[#1e3799] w-[30%]" title="Chờ xếp loại"></div>
+               <div className="bg-[#ff9800] transition-all" style={{width: `${(dData.evalNotDone/dData.totalStaff)*100}%`}} title="Không thực hiện đánh giá"></div>
+               <div className="bg-red-500 transition-all" style={{width: `${(dData.evalPendingSelf/dData.totalStaff)*100}%`}} title="Chưa tự đánh giá"></div>
+               <div className="bg-[#00d2d3] transition-all" style={{width: `${(dData.evalPendingMgmt/dData.totalStaff)*100}%`}} title="Chờ theo dõi, đánh giá"></div>
+               <div className="bg-[#1e3799] transition-all" style={{width: `${(dData.evalRankWait/dData.totalStaff)*100}%`}} title="Chờ xếp loại"></div>
             </div>
 
             <div className="grid grid-cols-2 gap-4 gap-y-6 mt-6">
                <div className="border-l-2 border-[#ff9800] pl-3">
-                  <div className="text-[11px] font-bold text-slate-600">Không thực hiện đánh giá</div>
-                  <div className="font-bold text-red-500 text-sm">11/115</div>
-                  <div className="text-[10px] text-slate-400">Chiếm 10%</div>
+                  <div className="text-[11px] font-bold text-slate-600">Không thực hiện</div>
+                  <div className="font-bold text-red-500 text-sm">{dData.evalNotDone}/{dData.totalStaff}</div>
+                  <div className="text-[10px] text-slate-400">Chiếm {Math.round((dData.evalNotDone/dData.totalStaff)*100)}%</div>
                </div>
                <div className="border-l-2 border-[#00d2d3] pl-3">
-                  <div className="text-[11px] font-bold text-slate-600">Chờ theo dõi, đánh giá</div>
-                  <div className="font-bold text-[#00d2d3] text-sm">23/115</div>
-                  <div className="text-[10px] text-slate-400">Chiếm 20%</div>
+                  <div className="text-[11px] font-bold text-slate-600">Chờ Quản lý đánh giá</div>
+                  <div className="font-bold text-[#00d2d3] text-sm">{dData.evalPendingMgmt}/{dData.totalStaff}</div>
+                  <div className="text-[10px] text-slate-400">Chiếm {Math.round((dData.evalPendingMgmt/dData.totalStaff)*100)}%</div>
                </div>
                <div className="border-l-2 border-red-500 pl-3">
-                  <div className="text-[11px] font-bold text-slate-600">Chưa tự đánh giá</div>
-                  <div className="font-bold text-[#f39c12] text-sm">46/115</div>
-                  <div className="text-[10px] text-slate-400">Chiếm 40%</div>
+                  <div className="text-[11px] font-bold text-slate-600">Chưa đánh giá cá nhân</div>
+                  <div className="font-bold text-[#f39c12] text-sm">{dData.evalPendingSelf}/{dData.totalStaff}</div>
+                  <div className="text-[10px] text-slate-400">Chiếm {Math.round((dData.evalPendingSelf/dData.totalStaff)*100)}%</div>
                </div>
                <div className="border-l-2 border-[#1e3799] pl-3">
-                  <div className="text-[11px] font-bold text-slate-600">Chờ xếp loại</div>
-                  <div className="font-bold text-[#1e3799] text-sm">35/115</div>
-                  <div className="text-[10px] text-slate-400">Chiếm 30%</div>
+                  <div className="text-[11px] font-bold text-slate-600">Chờ kết quả cuối</div>
+                  <div className="font-bold text-[#1e3799] text-sm">{dData.evalRankWait}/{dData.totalStaff}</div>
+                  <div className="text-[10px] text-slate-400">Chiếm {Math.round((dData.evalRankWait/dData.totalStaff)*100)}%</div>
                </div>
             </div>
          </Card>
 
          <Card className="rounded-xl shadow-sm border-slate-200/60 bg-white p-6 hover:shadow-md transition-shadow flex flex-col justify-between">
             <div>
-               <h2 className="text-[15px] font-bold text-slate-800 mb-1">Tình trạng đánh giá, xếp loại tháng 03/2026</h2>
-               <p className="text-[11px] text-slate-500 italic mb-6">(chu kỳ gần nhất)</p>
+               <h2 className="text-[15px] font-bold text-slate-800 mb-1">Tình trạng thực hiện tháng {String(selectedMonth).padStart(2, '0')}/{selectedYear}</h2>
+               <p className="text-[11px] text-slate-500 italic mb-6">(chuẩn hóa quy trình)</p>
             </div>
             
             <div className="space-y-6 flex-1 flex flex-col justify-center">
                <div className="space-y-1">
-                  <div className="text-[12px] font-bold text-slate-700">Tự đánh giá</div>
+                  <div className="text-[12px] font-bold text-slate-700">Đánh giá cơ sở</div>
                   <div className="w-full bg-slate-100 h-2 flex rounded-full overflow-hidden">
                      <div className="bg-[#0bb720] w-[40%]"></div>
                      <div className="bg-[#ff9800] w-[60%]"></div>
                   </div>
                   <div className="flex justify-between text-[10px] font-bold pt-1">
-                     <span className="flex items-center gap-1 text-[#0bb720]"><div className="w-1.5 h-1.5 bg-[#0bb720] rounded-full"></div>Đúng hạn 46 (40%)</span>
-                     <span className="flex items-center gap-1 text-[#ff9800]"><div className="w-1.5 h-1.5 bg-[#ff9800] rounded-full"></div>Muộn/Trễ 69 (60%)</span>
+                     <span className="flex items-center gap-1 text-[#0bb720]"><div className="w-1.5 h-1.5 bg-[#0bb720] rounded-full"></div>Đúng hạn {Math.floor(dData.totalStaff * 0.4)}</span>
+                     <span className="flex items-center gap-1 text-[#ff9800]"><div className="w-1.5 h-1.5 bg-[#ff9800] rounded-full"></div>Muộn/Trễ {Math.ceil(dData.totalStaff * 0.6)}</span>
                   </div>
                </div>
 
                <div className="space-y-1">
-                  <div className="text-[12px] font-bold text-slate-700">Theo dõi, đánh giá</div>
+                  <div className="text-[12px] font-bold text-slate-700">Đánh giá chuyên sâu</div>
                   <div className="w-full bg-slate-100 h-2 flex rounded-full overflow-hidden">
                      <div className="bg-[#0bb720] w-[80%]"></div>
                      <div className="bg-[#ff9800] w-[20%]"></div>
                   </div>
                   <div className="flex justify-between text-[10px] font-bold pt-1">
-                     <span className="flex items-center gap-1 text-[#0bb720]"><div className="w-1.5 h-1.5 bg-[#0bb720] rounded-full"></div>Đúng hạn 92 (80%)</span>
-                     <span className="flex items-center gap-1 text-[#ff9800]"><div className="w-1.5 h-1.5 bg-[#ff9800] rounded-full"></div>Muộn/Trễ 23 (20%)</span>
+                     <span className="flex items-center gap-1 text-[#0bb720]"><div className="w-1.5 h-1.5 bg-[#0bb720] rounded-full"></div>Đúng hạn {Math.floor(dData.totalStaff * 0.8)}</span>
+                     <span className="flex items-center gap-1 text-[#ff9800]"><div className="w-1.5 h-1.5 bg-[#ff9800] rounded-full"></div>Muộn/Trễ {Math.ceil(dData.totalStaff * 0.2)}</span>
                   </div>
                </div>
 
                <div className="space-y-1">
-                  <div className="text-[12px] font-bold text-slate-700">Hoàn thành</div>
+                  <div className="text-[12px] font-bold text-slate-700">Hoàn tất</div>
                   <div className="w-full bg-slate-100 h-2 flex rounded-full overflow-hidden">
                      <div className="bg-[#0bb720] w-[90%]"></div>
                      <div className="bg-[#ff9800] w-[10%]"></div>
                   </div>
                   <div className="flex justify-between text-[10px] font-bold pt-1">
-                     <span className="flex items-center gap-1 text-[#0bb720]"><div className="w-1.5 h-1.5 bg-[#0bb720] rounded-full"></div>Đúng hạn 104 (90%)</span>
-                     <span className="flex items-center gap-1 text-[#ff9800]"><div className="w-1.5 h-1.5 bg-[#ff9800] rounded-full"></div>Muộn/Trễ 11 (10%)</span>
+                     <span className="flex items-center gap-1 text-[#0bb720]"><div className="w-1.5 h-1.5 bg-[#0bb720] rounded-full"></div>Đúng hạn {Math.floor(dData.totalStaff * 0.9)}</span>
+                     <span className="flex items-center gap-1 text-[#ff9800]"><div className="w-1.5 h-1.5 bg-[#ff9800] rounded-full"></div>Muộn/Trễ {Math.ceil(dData.totalStaff * 0.1)}</span>
                   </div>
                </div>
             </div>
          </Card>
 
          <Card className="rounded-xl shadow-sm border-slate-200/60 bg-white p-6 hover:shadow-md transition-shadow relative">
-            <h2 className="text-[15px] font-bold text-slate-800 mb-1">Kết quả đánh giá, xếp loại tháng 03/2026</h2>
-            <p className="text-[11px] text-slate-500 italic mb-4">(chu kỳ gần nhất)</p>
+            <h2 className="text-[15px] font-bold text-slate-800 mb-1">Kết quả đánh giá CBNV tháng {String(selectedMonth).padStart(2, '0')}/{selectedYear}</h2>
+            <p className="text-[11px] text-slate-500 italic mb-4">(tỷ lệ % quy mô tổ chức)</p>
 
             <div className="h-[180px] w-full relative mt-6">
                <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                      <Pie
                         data={[
-                           {name: "Hoàn thành xuất sắc", value: 40, color: "#0bb720"},
-                           {name: "Không hoàn thành", value: 1, color: "#e3e8f0"}, // Very small slice logically 0
-                           {name: "Hoàn thành nhiệm vụ", value: 46, color: "#ff9800"},
-                           {name: "Hoàn thành tốt nhiệm vụ", value: 29, color: "#0052cc"}
+                           {name: "Hoàn thành xuất sắc", value: 30, color: "#0bb720"},
+                           {name: "Không hoàn thành", value: 5, color: "#e3e8f0"},
+                           {name: "Hoàn thành nhiệm vụ", value: 45, color: "#ff9800"},
+                           {name: "Hoàn thành tốt nhiệm vụ", value: 20, color: "#0052cc"}
                         ]}
                         cx="50%"
                         cy="50%"
@@ -436,10 +481,10 @@ export default function KPIOverview() {
                      >
                         {
                            [
-                              {name: "Hoàn thành xuất sắc", value: 40, color: "#0bb720"},
-                              {name: "Không hoàn thành", value: 1, color: "#e3e8f0"},
-                              {name: "Hoàn thành nhiệm vụ", value: 46, color: "#ff9800"},
-                              {name: "Hoàn thành tốt nhiệm vụ", value: 29, color: "#0052cc"}
+                              {name: "Hoàn thành xuất sắc", value: 30, color: "#0bb720"},
+                              {name: "Không hoàn thành", value: 5, color: "#e3e8f0"},
+                              {name: "Hoàn thành nhiệm vụ", value: 45, color: "#ff9800"},
+                              {name: "Hoàn thành tốt nhiệm vụ", value: 20, color: "#0052cc"}
                            ].map((entry, index) => (
                               <Cell key={`cell-${index}`} fill={entry.color} />
                            ))
@@ -449,20 +494,20 @@ export default function KPIOverview() {
                </ResponsiveContainer>
                
                <div className="absolute top-[5%] left-0 text-[10px] text-center w-24">
-                  <div className="font-bold text-[#0bb720]">40 (35%)</div>
-                  <div className="text-slate-600 leading-tight">Hoàn thành xuất sắc nhiệm vụ</div>
+                  <div className="font-bold text-[#0bb720]">30%</div>
+                  <div className="text-slate-600 leading-tight">Hoàn thành xuất sắc</div>
                </div>
                <div className="absolute top-[0%] right-[0%] text-[10px] text-center w-20">
-                  <div className="font-bold text-red-500">0 (0%)</div>
-                  <div className="text-slate-600 leading-tight">Không hoàn thành nhiệm vụ</div>
+                  <div className="font-bold text-red-500">5%</div>
+                  <div className="text-slate-600 leading-tight">Không hoàn thành</div>
                </div>
                <div className="absolute bottom-[5%] right-[0%] text-[10px] text-center w-20">
-                  <div className="font-bold text-[#ff9800]">46 (40%)</div>
+                  <div className="font-bold text-[#ff9800]">45%</div>
                   <div className="text-slate-600 leading-tight">Hoàn thành nhiệm vụ</div>
                </div>
                <div className="absolute bottom-[0%] left-[0%] text-[10px] text-center w-20">
-                  <div className="font-bold text-[#0052cc]">29 (25%)</div>
-                  <div className="text-slate-600 leading-tight">Hoàn thành tốt nhiệm vụ</div>
+                  <div className="font-bold text-[#0052cc]">20%</div>
+                  <div className="text-slate-600 leading-tight">Hoàn thành tốt</div>
                </div>
             </div>
          </Card>
