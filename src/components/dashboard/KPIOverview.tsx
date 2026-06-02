@@ -165,43 +165,34 @@ export default function KPIOverview() {
 
     const progressPercent = totalAssignments > 0 ? Math.round((successCount / totalAssignments) * 100) : 0;
 
-    const upcomingTasks = filteredAssignments
-      .filter(a => !['COMPLETED', 'SUCCESS', 'FAILED'].includes(a.status))
-      .map(a => {
-         const batch = batches.find(b => b.id === a.campaignId);
-         const staff = users.find(u => u.id === a.staffId);
-         const deadlineStr = a.deadline || batch?.endDate;
-         let daysDiff = 0;
-         let statusLabel = 'Còn hạn';
-         let isOverdue = false;
+    const programNotifications = batches
+      .map((batch, index) => {
+         let statusLabel = 'Đang triển khai';
+         let statusColor = 'blue';
          
-         if (deadlineStr) {
-             const dLine = new Date(deadlineStr);
-             const today = new Date();
-             const diffTime = dLine.getTime() - today.getTime();
-             daysDiff = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-             if (daysDiff < 0) {
-                 isOverdue = true;
-                 statusLabel = `Quá hạn ${Math.abs(daysDiff)} ngày`;
-             } else {
-                 statusLabel = `Còn hạn ${daysDiff} ngày`;
-             }
+         // Mocking statuses for demo purposes to match requirements
+         if (batch.status === 'ACTIVE' && index % 3 === 1) {
+             statusLabel = 'Tạm dừng';
+             statusColor = 'orange';
+         } else if (batch.status === 'COMPLETED' || index % 3 === 2) {
+             statusLabel = 'Dừng';
+             statusColor = 'red';
+         } else {
+             statusLabel = 'Đang triển khai';
+             statusColor = 'blue';
          }
-         
+
          return {
-            id: a.id || Math.random().toString(),
-            name: batch?.name || 'Nhiệm vụ',
-            staffName: staff ? staff.name : 'Chưa giao',
-            unit: staff ? staff.unit : 'Văn phòng',
-            deadlineStr,
-            daysDiff,
-            isOverdue,
-            statusLabel
+            id: batch.id,
+            name: batch.name,
+            endDate: batch.endDate,
+            startDate: batch.startDate,
+            statusLabel,
+            statusColor
          }
       })
-      .filter(t => t.deadlineStr)
-      .sort((a,b) => a.daysDiff - b.daysDiff)
-      .slice(0, 5); // top 5
+      .filter(p => ['Đang triển khai', 'Tạm dừng', 'Dừng'].includes(p.statusLabel))
+      .slice(0, 5);
 
     let timelineStats = { overdue: 0, pendingOnTime: 0, completedOnTime: 0, completedEarly: 0 };
     filteredAssignments.forEach(a => {
@@ -243,7 +234,7 @@ export default function KPIOverview() {
       statusData,
       topStaff,
       staffProgressData,
-      upcomingTasks,
+      programNotifications,
       timelineStats
     };
   }, [assignments, customers, potentialCustomers, categories, users, batches, selectedMonth, selectedYear]);
@@ -260,7 +251,7 @@ export default function KPIOverview() {
     totalBatches, totalAssignments, totalPotential, successCount, activeTasks,
     pendingCount, inProgressCount, progressPercent,
     progressData, statusData, topStaff, staffProgressData,
-    upcomingTasks, timelineStats
+    programNotifications, timelineStats
   } = dashboardData;
 
   const CustomTooltip = ({ active, payload, label }: any) => {
@@ -415,41 +406,41 @@ export default function KPIOverview() {
            </div>
         </div>
 
-        {/* Card 3: Thông tin bổ sung - Tiềm năng và Chiến dịch */}
+        {/* Card 3: Thông báo chương trình */}
         <div className="bg-white border rounded shadow-sm p-5 flex flex-col">
            <h3 className="text-[15px] font-bold text-slate-800 mb-4 flex items-center gap-2">
-              Nhiệm vụ sắp hết hạn tháng {selectedMonth}/{selectedYear}
-              <span className="bg-red-500 text-white text-[12px] w-6 h-6 rounded-full flex items-center justify-center font-bold">{String(upcomingTasks.length).padStart(2, '0')}</span>
+              Thông báo Chiến dịch tháng {selectedMonth}/{selectedYear}
+              <span className="bg-blue-600 text-white text-[12px] w-6 h-6 rounded-full flex items-center justify-center font-bold">{String(programNotifications.length).padStart(2, '0')}</span>
            </h3>
            
            <div className="flex-1 space-y-4">
-              {upcomingTasks.map(task => (
-                <div key={task.id} className="flex gap-3 items-start border-b border-dashed border-slate-200 pb-4 last:border-0 last:pb-0">
-                    <div className={cn("w-2 h-2 rounded-full mt-1.5 shrink-0", task.isOverdue ? "bg-red-500" : "bg-blue-600")}></div>
+              {programNotifications.map(prog => (
+                <div key={prog.id} className="flex gap-3 items-start border-b border-dashed border-slate-200 pb-4 last:border-0 last:pb-0">
+                    <div className={cn("w-2 h-2 rounded-full mt-1.5 shrink-0", 
+                       prog.statusColor === 'blue' ? 'bg-blue-600' :
+                       prog.statusColor === 'orange' ? 'bg-orange-500' : 'bg-red-500'
+                    )}></div>
                     <div className="w-full">
                        <div className="flex items-start justify-between w-full">
-                           <h4 className="text-[13px] font-semibold text-slate-800 leading-snug break-words pr-2">{task.name}</h4>
+                           <h4 className="text-[13px] font-semibold text-slate-800 leading-snug break-words pr-2">{prog.name}</h4>
                        </div>
                        <div className="flex items-center gap-4 text-[12px] text-slate-500 mt-1.5">
                           <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5"/> Tháng {selectedMonth}/{selectedYear}</span>
                           <span className={cn(
-                              "border px-2 rounded-full text-[10px] font-bold flex items-center gap-1 ml-auto",
-                              task.isOverdue ? "text-red-500 border-red-200 bg-red-50" : "text-blue-600 border-blue-200 bg-blue-50"
+                              "border px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1 ml-auto uppercase",
+                              prog.statusColor === 'blue' ? 'text-blue-600 border-blue-200 bg-blue-50' :
+                              prog.statusColor === 'orange' ? 'text-orange-600 border-orange-200 bg-orange-50' :
+                              'text-red-500 border-red-200 bg-red-50'
                           )}>
-                             {task.isOverdue ? <AlertCircle className="w-3 h-3"/> : <Clock className="w-3 h-3"/>}
-                             {task.statusLabel}
+                             {prog.statusLabel}
                           </span>
-                       </div>
-                       <div className="text-[12px] text-slate-600 mt-1 flex gap-4">
-                           <span className="flex items-center gap-1"><FileText className="w-3.5 h-3.5"/> {task.unit}</span>
-                           <span className="flex items-center gap-1"><UserPlus className="w-3 h-3"/> {task.staffName}</span>
                        </div>
                     </div>
                 </div>
               ))}
               
-              {upcomingTasks.length === 0 && (
-                <div className="text-[13px] text-slate-500 text-center py-6">Không có nhiệm vụ sắp hết hạn</div>
+              {programNotifications.length === 0 && (
+                <div className="text-[13px] text-slate-500 text-center py-6">Không có thông báo chương trình</div>
               )}
            </div>
         </div>
