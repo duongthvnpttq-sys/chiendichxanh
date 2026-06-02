@@ -2907,6 +2907,52 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-1.5 h-1.5 rounded-full bg-slate-300" />
+                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Trạng thái nhiệm vụ</label>
+                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger
+                    render={
+                      <Button variant="outline" className="w-full bg-slate-50 border-slate-100 h-10 rounded-xl font-bold text-xs justify-between shadow-sm">
+                        <span className="truncate text-left font-sans">
+                          {exportTaskTypes.length === 0 ? "Tất cả trạng thái" : `Đã chọn: ${exportTaskTypes.length > 2 && exportTaskTypes.includes('SUCCESS') ? exportTaskTypes.length - 1 : exportTaskTypes.length} trạng thái`}
+                        </span>
+                        <ChevronDown className="h-4 w-4 opacity-50 shrink-0" />
+                      </Button>
+                    }
+                  />
+                  <DropdownMenuContent className="w-auto max-w-[400px] min-w-[280px] rounded-xl max-h-[300px] overflow-y-auto custom-scrollbar" align="start">
+                    <DropdownMenuCheckboxItem checked={exportTaskTypes.length === 0} onCheckedChange={() => setExportTaskTypes([])} className="text-xs font-bold py-2">
+                      Tất cả trạng thái
+                    </DropdownMenuCheckboxItem>
+                    {[
+                      { id: 'PENDING', label: 'Đã giao / Chờ' },
+                      { id: 'IN_PROGRESS', label: 'Đang xử lý' },
+                      { id: 'COMPLETED', label: 'Đã hoàn tất' }
+                    ].map(status => (
+                      <DropdownMenuCheckboxItem 
+                        key={status.id} 
+                        checked={exportTaskTypes.includes(status.id) || (status.id === 'COMPLETED' && exportTaskTypes.includes('SUCCESS'))} 
+                        onCheckedChange={(checked) => {
+                           if (checked) {
+                             if (status.id === 'COMPLETED') setExportTaskTypes(prev => [...prev.filter(x => x !== 'COMPLETED' && x !== 'SUCCESS'), 'COMPLETED', 'SUCCESS']);
+                             else setExportTaskTypes(prev => [...prev.filter(x => x !== status.id), status.id]);
+                           } else {
+                             if (status.id === 'COMPLETED') setExportTaskTypes(prev => prev.filter(x => x !== 'COMPLETED' && x !== 'SUCCESS'));
+                             else setExportTaskTypes(prev => prev.filter(x => x !== status.id));
+                           }
+                        }} 
+                        className="text-xs font-bold py-2"
+                      >
+                        {status.label}
+                      </DropdownMenuCheckboxItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </div>
             <div className="flex flex-col gap-3 pt-6 border-t border-slate-50">
               <div className="flex gap-3">
