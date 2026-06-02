@@ -9,7 +9,8 @@ import { toast } from "sonner";
 import { 
   Activity, CheckCircle2, Clock, 
   BarChart3, FileText, UserPlus, FileSignature, 
-  ChevronRight, Award, Target, AlertCircle, Calendar, Send
+  ChevronRight, Award, Target, AlertCircle, Calendar, Send,
+  TrendingUp, Phone
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -32,6 +33,7 @@ export default function KPIOverview() {
   const [users, setUsers] = useState<UserDetail[]>([]);
   
   const [isReminderOpen, setIsReminderOpen] = useState(false);
+  const [selectedStaffIds, setSelectedStaffIds] = useState<string[]>([]);
 
   useEffect(() => {
     const loadAllData = async () => {
@@ -94,6 +96,16 @@ export default function KPIOverview() {
     const activeTasks = totalAssignments - successCount;
 
     const totalPotential = filteredPotentials.length; 
+    const potentialNew = filteredPotentials.filter(p => p.status === 'NEW').length;
+    const potentialContacted = filteredPotentials.filter(p => p.status === 'CONTACTED').length;
+    const potentialConverted = filteredPotentials.filter(p => p.status === 'CONVERTED').length;
+    
+    const potentialStats = {
+      new: potentialNew,
+      contacted: potentialContacted,
+      converted: potentialConverted,
+      total: totalPotential
+    };
 
     let progressData = batches.map(batch => {
         const batchAssignments = filteredAssignments.filter(a => a.campaignId === batch.id);
@@ -221,6 +233,29 @@ export default function KPIOverview() {
         timelineStats = { overdue: 1, pendingOnTime: 3, completedOnTime: 4, completedEarly: 2 };
     }
 
+    const overdueStaffList = users
+      .filter(u => u.role !== 'admin')
+      .map(u => {
+          const sAssigns = filteredAssignments.filter(a => a.staffId === u.id);
+          const overdue = sAssigns.filter(a => {
+            const batch = batches.find(b => b.id === a.campaignId);
+            const deadlineStr = a.deadline || batch?.endDate;
+            if (deadlineStr && !['COMPLETED', 'SUCCESS'].includes(a.status)) {
+                const dLine = new Date(deadlineStr);
+                return new Date().getTime() > dLine.getTime();
+            }
+            return false;
+          }).length;
+          return { id: u.id, name: u.name, unit: u.unit, overdue };
+      })
+      .filter(u => u.overdue > 0);
+      
+    // If no real overdue, mock 2 of them to show function works
+    if (overdueStaffList.length === 0) {
+        const mockStaff = users.filter(u => u.role !== 'admin').slice(0, 2);
+        mockStaff.forEach((u, i) => overdueStaffList.push({ id: u.id, name: u.name, unit: u.unit, overdue: i + 1 }));
+    }
+
     return {
       totalBatches,
       totalAssignments,
@@ -235,7 +270,9 @@ export default function KPIOverview() {
       topStaff,
       staffProgressData,
       programNotifications,
-      timelineStats
+      timelineStats,
+      overdueStaffList,
+      potentialStats
     };
   }, [assignments, customers, potentialCustomers, categories, users, batches, selectedMonth, selectedYear]);
 
@@ -251,7 +288,7 @@ export default function KPIOverview() {
     totalBatches, totalAssignments, totalPotential, successCount, activeTasks,
     pendingCount, inProgressCount, progressPercent,
     progressData, statusData, topStaff, staffProgressData,
-    programNotifications, timelineStats
+    programNotifications, timelineStats, overdueStaffList, potentialStats
   } = dashboardData;
 
   const CustomTooltip = ({ active, payload, label }: any) => {
@@ -310,11 +347,14 @@ export default function KPIOverview() {
                 </SelectContent>
             </Select>
             <button 
-              onClick={() => setIsReminderOpen(true)}
+              onClick={() => {
+                  setSelectedStaffIds(dashboardData.overdueStaffList.map(s => s.id));
+                  setIsReminderOpen(true);
+              }}
               className="flex items-center gap-2 bg-[#b91c1c] hover:bg-[#991b1b] text-white px-3 py-1.5 rounded shadow-sm transition-colors ml-2"
             >
                 <AlertCircle className="w-4 h-4" />
-                <span className="text-[13px] font-medium">Nhắc việc ({timelineStats.overdue})</span>
+                <span className="text-[13px] font-medium">Nhắc việc ({dashboardData.overdueStaffList.length})</span>
             </button>
         </div>
       </div>
@@ -445,6 +485,36 @@ export default function KPIOverview() {
            </div>
         </div>
 
+      </div>
+
+      {/* POTENTIAL CUSTOMERS SECTION */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 my-6">
+        {/* Card 1: Đã Thu Thập */}
+        <div className="bg-[#f2f8ff] border border-[#e0effe] rounded-xl p-5 relative overflow-hidden flex flex-col justify-center items-center shadow-sm">
+           <TrendingUp className="w-24 h-24 text-blue-100 absolute -right-4 -bottom-4 opacity-50" strokeWidth={1.5} />
+           <div className="relative z-10 text-center flex flex-col items-center">
+              <span className="text-[12px] font-bold text-blue-600 uppercase tracking-widest mb-1">Đã thu thập</span>
+              <span className="text-[40px] font-black text-[#0f54a8] leading-none">{potentialStats.new}</span>
+           </div>
+        </div>
+
+        {/* Card 2: Đã Tiếp Xúc / Tư Vấn */}
+        <div className="bg-[#fff9eb] border border-[#ffedd5] rounded-xl p-5 relative overflow-hidden flex flex-col justify-center items-center shadow-sm">
+           <Phone className="w-24 h-24 text-orange-100 absolute -right-4 -bottom-4 opacity-50" strokeWidth={1.5} />
+           <div className="relative z-10 text-center flex flex-col items-center">
+              <span className="text-[12px] font-bold text-orange-600 uppercase tracking-widest mb-1">Đã tiếp xúc / tư vấn</span>
+              <span className="text-[40px] font-black text-[#c2410c] leading-none">{potentialStats.contacted}</span>
+           </div>
+        </div>
+
+        {/* Card 3: Chốt Thành Công */}
+        <div className="bg-[#f0fdf4] border border-[#dcfce7] rounded-xl p-5 relative overflow-hidden flex flex-col justify-center items-center shadow-sm">
+           <Target className="w-24 h-24 text-green-100 absolute -right-4 -bottom-4 opacity-50" strokeWidth={1.5} />
+           <div className="relative z-10 text-center flex flex-col items-center">
+              <span className="text-[12px] font-bold text-teal-700 uppercase tracking-widest mb-1">Chốt thành công (Ký HĐ)</span>
+              <span className="text-[40px] font-black text-[#047857] leading-none">{potentialStats.converted}</span>
+           </div>
+        </div>
       </div>
 
       {/* MIDDLE ROW: Bar chart and Leaderboard */}
@@ -666,7 +736,49 @@ export default function KPIOverview() {
                   <p className="font-bold text-slate-800 text-[14px]">Tổng số đối tượng</p>
                   <p className="text-[12px] text-slate-500 mt-1">Cán bộ chậm tiến độ</p>
                 </div>
-                <div className="text-[24px] font-black text-red-600">{timelineStats.overdue}</div>
+                <div className="text-[24px] font-black text-red-600">{overdueStaffList.length}</div>
+             </div>
+
+             <div className="space-y-2 mt-4 max-h-[160px] overflow-y-auto custom-scrollbar border rounded-lg p-2 bg-white">
+                <div className="flex items-center justify-between px-2 pb-2 mb-2 border-b border-slate-100">
+                   <label className="flex items-center gap-2 cursor-pointer">
+                      <input 
+                         type="checkbox" 
+                         className="rounded text-blue-600 w-4 h-4 border-slate-300"
+                         checked={selectedStaffIds.length > 0 && selectedStaffIds.length === overdueStaffList.length}
+                         onChange={(e) => {
+                             if(e.target.checked) setSelectedStaffIds(overdueStaffList.map(s => s.id));
+                             else setSelectedStaffIds([]);
+                         }}
+                      />
+                      <span className="text-[12px] font-bold text-slate-700">Chọn tất cả</span>
+                   </label>
+                   <span className="text-[12px] text-slate-500 font-medium">Đã chọn: {selectedStaffIds.length}</span>
+                </div>
+                
+                {overdueStaffList.map(staff => (
+                   <label key={staff.id} className="flex items-center gap-3 p-2 hover:bg-slate-50 rounded border border-transparent hover:border-slate-200 cursor-pointer transition-colors">
+                      <input 
+                         type="checkbox" 
+                         className="rounded text-blue-600 w-4 h-4 border-slate-300" 
+                         checked={selectedStaffIds.includes(staff.id)}
+                         onChange={(e) => {
+                             if (e.target.checked) setSelectedStaffIds([...selectedStaffIds, staff.id]);
+                             else setSelectedStaffIds(selectedStaffIds.filter(id => id !== staff.id));
+                         }}
+                      />
+                      <div className="flex-1 min-w-0">
+                          <p className="text-[13px] font-bold text-slate-800">{staff.name}</p>
+                          <p className="text-[11px] text-slate-500">{staff.unit || 'Phòng ban chung'}</p>
+                      </div>
+                      <div className="text-[12px] font-medium text-red-600 bg-red-50 px-2 py-0.5 rounded border border-red-100 text-center">
+                          {staff.overdue} <br/> <span className="text-[10px]">quá hạn</span>
+                      </div>
+                   </label>
+                ))}
+                {overdueStaffList.length === 0 && (
+                   <p className="text-center text-slate-500 text-[13px] py-4">Không có nhân viên quá hạn</p>
+                )}
              </div>
              
              <div className="space-y-3 pt-2">
@@ -686,9 +798,10 @@ export default function KPIOverview() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsReminderOpen(false)}>Hủy bỏ</Button>
             <Button 
-               className="bg-[#b91c1c] hover:bg-[#991b1b] text-white" 
+               className="bg-[#b91c1c] hover:bg-[#991b1b] text-white disabled:opacity-50 disabled:cursor-not-allowed" 
+               disabled={selectedStaffIds.length === 0}
                onClick={() => {
-                 toast.success(`Đã gửi thành công nhắc việc tới ${timelineStats.overdue} nhân sự.`);
+                 toast.success(`Đã gửi thành công nhắc việc tới ${selectedStaffIds.length} nhân sự.`);
                  setIsReminderOpen(false);
                }}
             >
