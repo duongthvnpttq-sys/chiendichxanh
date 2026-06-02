@@ -784,19 +784,13 @@ export default function MyTasks() {
                   Hẹn gặp lại
                 </Button>
              </div>
-             {checkInDone && selectedTask?.images && selectedTask.images.length > 0 && notes.trim().length > 0 ? (
-               <Button 
-                  disabled={isSubmitting}
-                  onClick={() => submitResult("COMPLETED")}
-                  className="w-full font-black bg-emerald-600 hover:bg-emerald-700 h-16 rounded-2xl shadow-2xl shadow-emerald-200 uppercase text-xs tracking-[0.2em] transition-all hover:scale-[1.02] active:scale-[0.98]"
-                >
-                  {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "XÁC NHẬN HOÀN TẤT"}
-                </Button>
-             ) : (
-                <div className="w-full min-h-[64px] flex items-center justify-center text-center p-4 bg-slate-50 border border-dashed border-slate-300 rounded-2xl text-[11px] text-slate-500 font-bold uppercase tracking-wider">
-                  Hoàn thành: Chụp ảnh, Check-in GPS, và Ghi chú phản hồi hiện trường để hiện Xác Nhận Hoàn Tất
-                </div>
-             )}
+             <Button 
+                disabled={isSubmitting}
+                onClick={() => submitResult("COMPLETED")}
+                className="w-full font-black bg-emerald-600 hover:bg-emerald-700 h-16 rounded-2xl shadow-2xl shadow-emerald-200 uppercase text-xs tracking-[0.2em] transition-all hover:scale-[1.02] active:scale-[0.98]"
+              >
+                {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : "XÁC NHẬN HOÀN TẤT"}
+              </Button>
           </div>
         </DialogContent>
       </Dialog>
