@@ -109,6 +109,7 @@ export const notificationService = {
     const options: NotificationOptions = { 
       body, 
       icon: '/favicon.ico',
+      vibrate: [200, 100, 200, 100, 200, 100, 200], // Thêm rung (nếu thiết bị hỗ trợ)
       requireInteraction: true // Yêu cầu người dùng tương tác để tắt
     };
 
