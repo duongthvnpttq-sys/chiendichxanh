@@ -233,7 +233,7 @@ export default function KPIOverview() {
         timelineStats = { overdue: 1, pendingOnTime: 3, completedOnTime: 4, completedEarly: 2 };
     }
 
-    const overdueStaffList = users
+    const staffReminderList = users
       .filter(u => u.role !== 'admin')
       .map(u => {
           const sAssigns = filteredAssignments.filter(a => a.staffId === u.id);
@@ -246,15 +246,10 @@ export default function KPIOverview() {
             }
             return false;
           }).length;
-          return { id: u.id, name: u.name, unit: u.unit, overdue };
-      })
-      .filter(u => u.overdue > 0);
-      
-    // If no real overdue, mock 2 of them to show function works
-    if (overdueStaffList.length === 0) {
-        const mockStaff = users.filter(u => u.role !== 'admin').slice(0, 2);
-        mockStaff.forEach((u, i) => overdueStaffList.push({ id: u.id, name: u.name, unit: u.unit, overdue: i + 1 }));
-    }
+          
+          const inProgress = sAssigns.filter(a => a.status === 'IN_PROGRESS' || a.status === 'PENDING').length;
+          return { id: u.id, name: u.name, unit: u.unit, overdue, inProgress };
+      });
 
     return {
       totalBatches,
@@ -271,7 +266,7 @@ export default function KPIOverview() {
       staffProgressData,
       programNotifications,
       timelineStats,
-      overdueStaffList,
+      staffReminderList,
       potentialStats
     };
   }, [assignments, customers, potentialCustomers, categories, users, batches, selectedMonth, selectedYear]);
@@ -288,7 +283,7 @@ export default function KPIOverview() {
     totalBatches, totalAssignments, totalPotential, successCount, activeTasks,
     pendingCount, inProgressCount, progressPercent,
     progressData, statusData, topStaff, staffProgressData,
-    programNotifications, timelineStats, overdueStaffList, potentialStats
+    programNotifications, timelineStats, staffReminderList, potentialStats
   } = dashboardData;
 
   const CustomTooltip = ({ active, payload, label }: any) => {
@@ -348,13 +343,13 @@ export default function KPIOverview() {
             </Select>
             <button 
               onClick={() => {
-                  setSelectedStaffIds(dashboardData.overdueStaffList.map(s => s.id));
+                  setSelectedStaffIds(dashboardData.staffReminderList.map(s => s.id));
                   setIsReminderOpen(true);
               }}
               className="flex items-center gap-2 bg-[#b91c1c] hover:bg-[#991b1b] text-white px-3 py-1.5 rounded shadow-sm transition-colors ml-2"
             >
                 <AlertCircle className="w-4 h-4" />
-                <span className="text-[13px] font-medium">Nhắc việc ({dashboardData.overdueStaffList.length})</span>
+                <span className="text-[13px] font-medium">Nhắc việc ({dashboardData.staffReminderList.length})</span>
             </button>
         </div>
       </div>
@@ -734,9 +729,9 @@ export default function KPIOverview() {
              <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex items-center justify-between">
                 <div>
                   <p className="font-bold text-slate-800 text-[14px]">Tổng số đối tượng</p>
-                  <p className="text-[12px] text-slate-500 mt-1">Cán bộ chậm tiến độ</p>
+                  <p className="text-[12px] text-slate-500 mt-1">Cán bộ trên hệ thống</p>
                 </div>
-                <div className="text-[24px] font-black text-red-600">{overdueStaffList.length}</div>
+                <div className="text-[24px] font-black text-blue-600">{staffReminderList.length}</div>
              </div>
 
              <div className="space-y-2 mt-4 max-h-[160px] overflow-y-auto custom-scrollbar border rounded-lg p-2 bg-white">
@@ -745,9 +740,9 @@ export default function KPIOverview() {
                       <input 
                          type="checkbox" 
                          className="rounded text-blue-600 w-4 h-4 border-slate-300"
-                         checked={selectedStaffIds.length > 0 && selectedStaffIds.length === overdueStaffList.length}
+                         checked={selectedStaffIds.length > 0 && selectedStaffIds.length === staffReminderList.length}
                          onChange={(e) => {
-                             if(e.target.checked) setSelectedStaffIds(overdueStaffList.map(s => s.id));
+                             if(e.target.checked) setSelectedStaffIds(staffReminderList.map(s => s.id));
                              else setSelectedStaffIds([]);
                          }}
                       />
@@ -756,7 +751,7 @@ export default function KPIOverview() {
                    <span className="text-[12px] text-slate-500 font-medium">Đã chọn: {selectedStaffIds.length}</span>
                 </div>
                 
-                {overdueStaffList.map(staff => (
+                {staffReminderList.map(staff => (
                    <label key={staff.id} className="flex items-center gap-3 p-2 hover:bg-slate-50 rounded border border-transparent hover:border-slate-200 cursor-pointer transition-colors">
                       <input 
                          type="checkbox" 
@@ -771,13 +766,27 @@ export default function KPIOverview() {
                           <p className="text-[13px] font-bold text-slate-800">{staff.name}</p>
                           <p className="text-[11px] text-slate-500">{staff.unit || 'Phòng ban chung'}</p>
                       </div>
-                      <div className="text-[12px] font-medium text-red-600 bg-red-50 px-2 py-0.5 rounded border border-red-100 text-center">
-                          {staff.overdue} <br/> <span className="text-[10px]">quá hạn</span>
+                      <div className="flex gap-2 text-right">
+                         {staff.overdue > 0 && (
+                            <div className="text-[12px] font-medium text-red-600 bg-red-50 px-2 py-0.5 rounded border border-red-100 text-center">
+                                {staff.overdue} <span className="text-[10px]">quá hạn</span>
+                            </div>
+                         )}
+                         {staff.inProgress > 0 && (
+                            <div className="text-[12px] font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100 text-center">
+                                {staff.inProgress} <span className="text-[10px]">đang làm</span>
+                            </div>
+                         )}
+                         {staff.overdue === 0 && staff.inProgress === 0 && (
+                            <div className="text-[12px] font-medium text-slate-500 bg-slate-50 px-2 py-0.5 rounded border border-slate-200 text-center">
+                                Trống
+                            </div>
+                         )}
                       </div>
                    </label>
                 ))}
-                {overdueStaffList.length === 0 && (
-                   <p className="text-center text-slate-500 text-[13px] py-4">Không có nhân viên quá hạn</p>
+                {staffReminderList.length === 0 && (
+                   <p className="text-center text-slate-500 text-[13px] py-4">Không có nhân viên nào</p>
                 )}
              </div>
              
