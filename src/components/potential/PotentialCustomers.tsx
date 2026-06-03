@@ -428,8 +428,13 @@ export default function PotentialCustomers() {
                    
                    <div className="md:border-l md:border-slate-100 md:pl-6 flex flex-row md:flex-col items-center justify-between md:justify-center gap-4 shrink-0 w-full md:w-48">
                       {c.coordinates && (
-                        <div className="text-center w-full bg-slate-50 py-2 rounded-xl mb-auto">
-                          <p className="text-[10px] font-bold text-slate-400 uppercase mb-1 flex items-center justify-center gap-1"><MapPin className="w-3 h-3 text-brand-orange" /> Tọa độ Check-in</p>
+                        <div className="text-center w-full min-h-[50px] bg-slate-50 p-2 rounded-xl mb-auto flex flex-col justify-center items-center group cursor-pointer hover:bg-slate-100 transition-colors"
+                             title="Bấm để xem trên Google Maps"
+                             onClick={(e) => {
+                               e.stopPropagation();
+                               window.open(`https://www.google.com/maps?q=${c.coordinates!.lat},${c.coordinates!.lng}`, '_blank');
+                             }}>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase mb-1 flex items-center justify-center gap-1 group-hover:text-brand-orange transition-colors"><MapPin className="w-3 h-3 text-brand-orange" /> Tọa độ Check-in</p>
                           <p className="text-[11px] text-slate-700 font-mono tracking-wider">{c.coordinates.lat.toFixed(6)}</p>
                           <p className="text-[11px] text-slate-700 font-mono tracking-wider">{c.coordinates.lng.toFixed(6)}</p>
                         </div>
@@ -607,7 +612,15 @@ export default function PotentialCustomers() {
                {viewingCustomer.coordinates && (
                  <div>
                     <p className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Tọa độ Check-in</p>
-                    <p className="text-sm font-mono text-slate-800">{viewingCustomer.coordinates.lat.toFixed(5)}, {viewingCustomer.coordinates.lng.toFixed(5)}</p>
+                    <div className="flex items-center gap-3 mt-0.5">
+                      <p className="text-sm font-mono text-slate-800">{viewingCustomer.coordinates.lat.toFixed(5)}, {viewingCustomer.coordinates.lng.toFixed(5)}</p>
+                      <button 
+                        onClick={() => window.open(`https://www.google.com/maps?q=${viewingCustomer.coordinates!.lat},${viewingCustomer.coordinates!.lng}`, '_blank')}
+                        className="flex items-center gap-1.5 text-[11px] font-bold text-brand-orange hover:text-orange-700 bg-orange-50 hover:bg-orange-100 px-2 py-1 rounded transition-colors"
+                      >
+                         <MapPin className="w-3 h-3" /> Xem Bản Đồ
+                      </button>
+                    </div>
                  </div>
                )}
                <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 mt-2 space-y-3">
