@@ -252,6 +252,8 @@ export default function UserAssignments({ mode = 'ASSIGN', onNavigate }: UserAss
   const [exportRegions, setExportRegions] = React.useState<string[]>([]);
   const [exportTerritories, setExportTerritories] = React.useState<string[]>([]);
   const [exportStaffIds, setExportStaffIds] = React.useState<string[]>([]);
+  const [exportStartDate, setExportStartDate] = React.useState<string>('');
+  const [exportEndDate, setExportEndDate] = React.useState<string>('');
   const [exportSelectedOnly, setExportSelectedOnly] = React.useState(false);
 
   const handleExportHTMLReport = async () => {
@@ -306,6 +308,22 @@ export default function UserAssignments({ mode = 'ASSIGN', onNavigate }: UserAss
           filteredCustomers = filteredCustomers.filter(c => {
             const a = assignMap.get(`${c.id}_${c.campaignId}`) || assignMap.get(c.id);
             return a && a.status && exportTaskTypes.includes(a.status);
+          });
+        }
+        if (exportStartDate) {
+          filteredCustomers = filteredCustomers.filter(c => {
+            const a = assignMap.get(`${c.id}_${c.campaignId}`) || assignMap.get(c.id);
+            if (!a || !a.assignedDate) return false;
+            return new Date(a.assignedDate) >= new Date(exportStartDate);
+          });
+        }
+        if (exportEndDate) {
+          filteredCustomers = filteredCustomers.filter(c => {
+            const a = assignMap.get(`${c.id}_${c.campaignId}`) || assignMap.get(c.id);
+            if (!a || !a.assignedDate) return false;
+            const endDt = new Date(exportEndDate);
+            endDt.setHours(23, 59, 59, 999);
+            return new Date(a.assignedDate) <= endDt;
           });
         }
       }
@@ -558,6 +576,22 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
           filteredCustomers = filteredCustomers.filter(c => {
             const a = assignMap.get(`${c.id}_${c.campaignId}`) || assignMap.get(c.id);
             return a && a.status && exportTaskTypes.includes(a.status);
+          });
+        }
+        if (exportStartDate) {
+          filteredCustomers = filteredCustomers.filter(c => {
+            const a = assignMap.get(`${c.id}_${c.campaignId}`) || assignMap.get(c.id);
+            if (!a || !a.assignedDate) return false;
+            return new Date(a.assignedDate) >= new Date(exportStartDate);
+          });
+        }
+        if (exportEndDate) {
+          filteredCustomers = filteredCustomers.filter(c => {
+            const a = assignMap.get(`${c.id}_${c.campaignId}`) || assignMap.get(c.id);
+            if (!a || !a.assignedDate) return false;
+            const endDt = new Date(exportEndDate);
+            endDt.setHours(23, 59, 59, 999);
+            return new Date(a.assignedDate) <= endDt;
           });
         }
       }
@@ -2906,6 +2940,33 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
                     ))}
                   </DropdownMenuContent>
                 </DropdownMenu>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 pt-2">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="w-1.5 h-1.5 rounded-full bg-slate-300" />
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Từ ngày</label>
+                  </div>
+                  <input 
+                    type="date" 
+                    value={exportStartDate}
+                    onChange={(e) => setExportStartDate(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-100 h-10 rounded-xl px-3 font-medium text-xs text-slate-700 outline-none focus:border-slate-300 transition-colors"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="w-1.5 h-1.5 rounded-full bg-slate-300" />
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Đến ngày</label>
+                  </div>
+                  <input 
+                    type="date" 
+                    value={exportEndDate}
+                    onChange={(e) => setExportEndDate(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-100 h-10 rounded-xl px-3 font-medium text-xs text-slate-700 outline-none focus:border-slate-300 transition-colors"
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">
