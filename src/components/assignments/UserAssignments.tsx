@@ -94,6 +94,8 @@ export default function UserAssignments({ mode = 'ASSIGN', onNavigate }: UserAss
   const [revenueRange, setRevenueRange] = React.useState('ALL');
   const [territoryFilter, setTerritoryFilter] = React.useState<string[]>([]);
   const [regionFilter, setRegionFilter] = React.useState<string[]>([]);
+  const [showAdvancedFilters, setShowAdvancedFilters] = React.useState(false);
+  const [assignedFilter, setAssignedFilter] = React.useState('ALL');
   const [isImporting, setIsImporting] = React.useState(false);
   const [historyTask, setHistoryTask] = React.useState<any>(null);
   const [territories, setTerritories] = React.useState<Territory[]>([]);
@@ -808,6 +810,9 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
         
         if (statusFilter !== "ALL" && taskStatus !== statusFilter) continue;
 
+        if (assignedFilter === 'ASSIGNED' && taskStatus === 'UNASSIGNED') continue;
+        if (assignedFilter === 'UNASSIGNED' && taskStatus !== 'UNASSIGNED') continue;
+
         const assignedStaff = assignment ? staffMap.get(assignment.staffId) : null;
         
         filtered.push({
@@ -821,11 +826,11 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
         });
     }
     return filtered;
-  }, [customers, assignments, staff, searchTerm, statusFilter, activeCategory, activeBatch, revenueRange, territoryFilter, regionFilter, batches, mode]);
+  }, [customers, assignments, staff, searchTerm, statusFilter, activeCategory, activeBatch, revenueRange, territoryFilter, regionFilter, batches, mode, assignedFilter]);
 
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, statusFilter, activeCategory, activeBatch, revenueRange, territoryFilter, regionFilter]);
+  }, [searchTerm, statusFilter, activeCategory, activeBatch, revenueRange, territoryFilter, regionFilter, assignedFilter]);
 
   React.useEffect(() => {
     if (assignDialogOpen) {
@@ -1726,8 +1731,8 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
                ) : (
                  <div className="flex flex-col flex-1 h-full min-h-0">
                   <div className="flex flex-col md:flex-row gap-4 justify-between items-center mb-6">
-                    <div className="flex items-center gap-4 w-full md:w-auto">
-                      <div className="relative flex-1 md:w-80">
+                    <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                      <div className="relative flex-1 md:w-80 min-w-[240px]">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                         <Input 
                           placeholder="Tìm theo tên hoặc số điện thoại..." 
@@ -1737,7 +1742,7 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
                         />
                       </div>
                       <Select value={statusFilter} onValueChange={setStatusFilter}>
-                        <SelectTrigger className="w-[180px] bg-white border-slate-200 h-10 rounded-xl font-bold text-[11px] uppercase">
+                        <SelectTrigger className="w-[160px] bg-white border-slate-200 h-10 rounded-xl font-bold text-[11px] uppercase shadow-sm">
                           <SelectValue placeholder="Trạng thái" />
                         </SelectTrigger>
                         <SelectContent className="rounded-xl">
@@ -1749,99 +1754,24 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
                         </SelectContent>
                       </Select>
 
-                      <Select value={revenueRange} onValueChange={setRevenueRange}>
-                        <SelectTrigger className="w-[150px] bg-white border-slate-200 h-10 rounded-xl font-bold text-[11px] uppercase">
-                          <SelectValue placeholder="Doanh thu" />
-                        </SelectTrigger>
-                        <SelectContent className="rounded-xl">
-                          <SelectItem value="ALL" className="text-[11px] font-bold">Mọi mức DT</SelectItem>
-                          <SelectItem value="HIGH" className="text-[11px] font-bold text-emerald-600">Cao ({'>'}= 500k)</SelectItem>
-                          <SelectItem value="MID" className="text-[11px] font-bold text-blue-600">Vừa (200k - 500k)</SelectItem>
-                          <SelectItem value="LOW" className="text-[11px] font-bold text-slate-500">Thấp ({'<'} 200k)</SelectItem>
-                        </SelectContent>
-                      </Select>
-
-
-                      <DropdownMenu>
-                        <DropdownMenuTrigger
-                          render={
-                            <Button variant="outline" className="w-[180px] bg-white border-slate-200 h-10 rounded-xl font-bold text-[11px] uppercase justify-between font-sans shadow-sm">
-                              <span className="truncate">
-                                {regionFilter.length === 0 ? "Quận / Huyện" : `Lọc: ${regionFilter.length} Quận`}
-                              </span>
-                              <ChevronDown className="h-4 w-4 opacity-50 shrink-0" />
-                            </Button>
-                          }
-                        />
-                        <DropdownMenuContent className="w-auto max-w-[400px] min-w-[240px] rounded-xl max-h-[400px] overflow-y-auto custom-scrollbar" align="start">
-                          <DropdownMenuCheckboxItem
-                            checked={regionFilter.length === 0}
-                            onCheckedChange={() => setRegionFilter([])}
-                            className="text-[11px] font-bold py-2"
-                          >
-                            Tất cả Quận / Huyện
-                          </DropdownMenuCheckboxItem>
-                          {uniqueRegions.map(r => (
-                            <DropdownMenuCheckboxItem
-                              key={r}
-                              checked={regionFilter.includes(r)}
-                              onCheckedChange={(checked) => {
-                                setRegionFilter(prev => 
-                                  checked ? [...prev, r] : prev.filter(x => x !== r)
-                                )
-                              }}
-                              className="text-[11px] font-bold py-2 uppercase"
-                            >
-                              {r}
-                            </DropdownMenuCheckboxItem>
-                          ))}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-
-                      <DropdownMenu>
-                        <DropdownMenuTrigger
-                          render={
-                            <Button variant="outline" className="w-[180px] bg-white border-slate-200 h-10 rounded-xl font-bold text-[11px] uppercase justify-between font-sans shadow-sm">
-                              <span className="truncate">
-                                {territoryFilter.length === 0 ? "Địa bàn (Ô)" : `Lọc: ${territoryFilter.length} địa bàn`}
-                              </span>
-                              <ChevronDown className="h-4 w-4 opacity-50 shrink-0" />
-                            </Button>
-                          }
-                        />
-                        <DropdownMenuContent className="w-auto max-w-[400px] min-w-[240px] rounded-xl max-h-[400px] overflow-y-auto custom-scrollbar" align="start">
-                          <DropdownMenuCheckboxItem
-                            checked={territoryFilter.length === 0}
-                            onCheckedChange={() => setTerritoryFilter([])}
-                            className="text-[11px] font-bold py-2"
-                          >
-                            Tất cả địa bàn
-                          </DropdownMenuCheckboxItem>
-                          {uniqueTerritories.map(t => (
-                            <DropdownMenuCheckboxItem
-                              key={t}
-                              checked={territoryFilter.includes(t)}
-                              onCheckedChange={(checked) => {
-                                setTerritoryFilter(prev => 
-                                  checked ? [...prev, t] : prev.filter(x => x !== t)
-                                )
-                              }}
-                              className="text-[11px] font-bold py-2"
-                            >
-                              {t}
-                            </DropdownMenuCheckboxItem>
-                          ))}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-
-                      <Button onClick={handleOpenAssignByTerritory} variant="outline" className="gap-2 border-slate-200 bg-white hover:bg-emerald-50 h-10 text-xs font-black text-emerald-600 rounded-xl">
-                        <MapIcon className="w-4 h-4" />
-                        Giao nhiệm vụ theo Ô
-                      </Button>
-
-                      <Button variant="outline" className="gap-2 border-slate-200 bg-white hover:bg-blue-50 h-10 text-xs font-bold text-slate-600 rounded-xl">
+                      <Button 
+                        onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                        variant="outline" 
+                        className={cn(
+                          "gap-2 border-slate-200 bg-white hover:bg-blue-50 h-10 text-xs font-bold text-slate-600 rounded-xl transition-all shadow-sm",
+                          showAdvancedFilters && "bg-blue-50 border-blue-400 text-[#005BAA]"
+                        )}
+                      >
                         <Filter className="w-4 h-4" />
                         Lọc nâng cao
+                        {(revenueRange !== 'ALL' || regionFilter.length > 0 || territoryFilter.length > 0 || assignedFilter !== 'ALL') && (
+                          <span className="ml-1 w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
+                        )}
+                      </Button>
+
+                      <Button onClick={handleOpenAssignByTerritory} variant="outline" className="gap-2 border-slate-200 bg-white hover:bg-emerald-50 h-10 text-xs font-bold text-emerald-600 rounded-xl shadow-sm">
+                        <MapIcon className="w-4 h-4" />
+                        Giao theo Ô
                       </Button>
                     </div>
                     
@@ -1849,6 +1779,131 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
                       {/* Functions removed per request */}
                     </div>
                   </div>
+
+                  <AnimatePresence>
+                    {showAdvancedFilters && (
+                      <motion.div 
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="overflow-hidden mb-6"
+                      >
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 p-5 bg-blue-50/40 border border-blue-100/50 rounded-2xl">
+                          {/* Filter: Assigned status */}
+                          <div className="flex flex-col gap-1.5">
+                            <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Phân giao nhiệm vụ</label>
+                            <Select value={assignedFilter} onValueChange={setAssignedFilter}>
+                              <SelectTrigger className="w-full bg-white border-slate-200 h-10 rounded-xl font-bold text-[11px] uppercase">
+                                <SelectValue placeholder="Phân giao" />
+                              </SelectTrigger>
+                              <SelectContent className="rounded-xl">
+                                <SelectItem value="ALL" className="text-[11px] font-bold">Tất cả (Giao & Chưa)</SelectItem>
+                                <SelectItem value="ASSIGNED" className="text-[11px] font-bold text-blue-600">Đã phân giao</SelectItem>
+                                <SelectItem value="UNASSIGNED" className="text-[11px] font-bold text-slate-400">Chưa phân giao</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          {/* Filter: Revenue level */}
+                          <div className="flex flex-col gap-1.5">
+                            <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Doanh thu thuê bao</label>
+                            <Select value={revenueRange} onValueChange={setRevenueRange}>
+                              <SelectTrigger className="w-full bg-white border-slate-200 h-10 rounded-xl font-bold text-[11px] uppercase">
+                                <SelectValue placeholder="Doanh thu" />
+                              </SelectTrigger>
+                              <SelectContent className="rounded-xl">
+                                <SelectItem value="ALL" className="text-[11px] font-bold">Mọi mức DT</SelectItem>
+                                <SelectItem value="HIGH" className="text-[11px] font-bold text-emerald-600">Cao ({'>'}= 500k)</SelectItem>
+                                <SelectItem value="MID" className="text-[11px] font-bold text-blue-600">Vừa (200k - 500k)</SelectItem>
+                                <SelectItem value="LOW" className="text-[11px] font-bold text-slate-500">Thấp ({'<'} 200k)</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          {/* Filter: Quận / Huyện */}
+                          <div className="flex flex-col gap-1.5">
+                            <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Chọn Quận / Huyện</label>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger
+                                render={
+                                  <Button variant="outline" className="w-full bg-white border-slate-200 h-10 rounded-xl font-bold text-[11px] uppercase justify-between font-sans shadow-sm">
+                                    <span className="truncate">
+                                      {regionFilter.length === 0 ? "Tất cả Quận/Huyện" : `Đã chọn: ${regionFilter.length} Quận`}
+                                    </span>
+                                    <ChevronDown className="h-4 w-4 opacity-50 shrink-0" />
+                                  </Button>
+                                }
+                              />
+                              <DropdownMenuContent className="w-auto max-w-[400px] min-w-[240px] rounded-xl max-h-[400px] overflow-y-auto custom-scrollbar" align="start">
+                                <DropdownMenuCheckboxItem
+                                  checked={regionFilter.length === 0}
+                                  onCheckedChange={() => setRegionFilter([])}
+                                  className="text-[11px] font-bold py-2"
+                                >
+                                  Tất cả Quận / Huyện
+                                </DropdownMenuCheckboxItem>
+                                {uniqueRegions.map(r => (
+                                  <DropdownMenuCheckboxItem
+                                    key={r}
+                                    checked={regionFilter.includes(r)}
+                                    onCheckedChange={(checked) => {
+                                      setRegionFilter(prev => 
+                                        checked ? [...prev, r] : prev.filter(x => x !== r)
+                                      )
+                                    }}
+                                    className="text-[11px] font-bold py-2 uppercase"
+                                  >
+                                    {r}
+                                  </DropdownMenuCheckboxItem>
+                                ))}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+
+                          {/* Filter: Địa bàn (Ô) */}
+                          <div className="flex flex-col gap-1.5">
+                            <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Chọn Địa bàn (Ô)</label>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger
+                                render={
+                                  <Button variant="outline" className="w-full bg-white border-slate-200 h-10 rounded-xl font-bold text-[11px] uppercase justify-between font-sans shadow-sm">
+                                    <span className="truncate">
+                                      {territoryFilter.length === 0 ? "Tất cả địa bàn" : `Đã chọn: ${territoryFilter.length} ô`}
+                                    </span>
+                                    <ChevronDown className="h-4 w-4 opacity-50 shrink-0" />
+                                  </Button>
+                                }
+                              />
+                              <DropdownMenuContent className="w-auto max-w-[400px] min-w-[240px] rounded-xl max-h-[400px] overflow-y-auto custom-scrollbar" align="start">
+                                <DropdownMenuCheckboxItem
+                                  checked={territoryFilter.length === 0}
+                                  onCheckedChange={() => setTerritoryFilter([])}
+                                  className="text-[11px] font-bold py-2"
+                                >
+                                  Tất cả địa bàn
+                                </DropdownMenuCheckboxItem>
+                                {uniqueTerritories.map(t => (
+                                  <DropdownMenuCheckboxItem
+                                    key={t}
+                                    checked={territoryFilter.includes(t)}
+                                    onCheckedChange={(checked) => {
+                                      setTerritoryFilter(prev => 
+                                        checked ? [...prev, t] : prev.filter(x => x !== t)
+                                      )
+                                    }}
+                                    className="text-[11px] font-bold py-2"
+                                  >
+                                    {t}
+                                  </DropdownMenuCheckboxItem>
+                                ))}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
 
                   <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col flex-1 min-h-0">
                     <div className="w-full overflow-x-auto overflow-y-auto custom-scrollbar flex-1 min-h-0">
