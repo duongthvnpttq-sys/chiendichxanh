@@ -20,7 +20,11 @@ import {
   CheckCircle2,
   Clock,
   Loader2,
-  ChevronDown
+  ChevronDown,
+  Maximize2,
+  Minimize2,
+  Settings,
+  Database
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +33,8 @@ import {
   DropdownMenuContent,
   DropdownMenuCheckboxItem,
   DropdownMenuTrigger,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { 
   Table, 
@@ -81,6 +87,7 @@ export default function UserAssignments({ mode = 'ASSIGN', onNavigate }: UserAss
   const [searchTerm, setSearchTerm] = React.useState('');
   const [statusFilter, setStatusFilter] = React.useState('ALL');
   const [assignDialogOpen, setAssignDialogOpen] = React.useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = React.useState(true);
   const [addBatchDialogOpen, setAddBatchDialogOpen] = React.useState(false);
   const [editingBatch, setEditingBatch] = React.useState<ImplementationBatch | null>(null);
   const [addCategoryDialogOpen, setAddCategoryDialogOpen] = React.useState(false);
@@ -101,6 +108,12 @@ export default function UserAssignments({ mode = 'ASSIGN', onNavigate }: UserAss
   const [staffFilter, setStaffFilter] = React.useState<string[]>([]);
   const [isImporting, setIsImporting] = React.useState(false);
   const [historyTask, setHistoryTask] = React.useState<any>(null);
+  const [assignStaffIds, setAssignStaffIds] = React.useState<string[]>([]);
+  const [assignTaskType, setAssignTaskType] = React.useState('Tư vấn nâng gói Cáp quang');
+  const [assignPriority, setAssignPriority] = React.useState<'LOW' | 'MEDIUM' | 'HIGH'>('MEDIUM');
+  const [assignDeadline, setAssignDeadline] = React.useState('');
+  const [assignNotes, setAssignNotes] = React.useState('');
+  const [assignStaffSearchTerm, setAssignStaffSearchTerm] = React.useState('');
   const [territories, setTerritories] = React.useState<Territory[]>([]);
   const [assignByTerritoryDialogOpen, setAssignByTerritoryDialogOpen] = React.useState(false);
   const [territoryMappings, setTerritoryMappings] = React.useState<Record<string, string>>({});
@@ -861,6 +874,28 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
     }
   }, [assignDialogOpen]);
 
+  React.useEffect(() => {
+    if (historyTask) {
+      const currentAssignment = assignments.find(a => a.customerId === historyTask.id);
+      if (currentAssignment) {
+        setAssignStaffIds([currentAssignment.staffId]);
+        setAssignTaskType(currentAssignment.taskType || 'Tư vấn nâng gói Cáp quang');
+        setAssignPriority(currentAssignment.priority || 'MEDIUM');
+        setAssignDeadline(currentAssignment.deadline ? currentAssignment.deadline.substring(0, 10) : '');
+        setAssignNotes(currentAssignment.managerNotes || '');
+      } else {
+        setAssignStaffIds([]);
+        setAssignTaskType('Tư vấn nâng gói Cáp quang');
+        setAssignPriority('MEDIUM');
+        const date = new Date();
+        date.setDate(date.getDate() + 3);
+        setAssignDeadline(date.toISOString().split('T')[0]);
+        setAssignNotes('');
+      }
+      setAssignStaffSearchTerm('');
+    }
+  }, [historyTask, assignments]);
+
   const paginatedCustomers = React.useMemo(() => {
     const startIndex = (currentPage - 1) * pageSize;
     return filteredCustomers.slice(startIndex, startIndex + pageSize);
@@ -891,6 +926,9 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
   const uniqueCommunes = React.useMemo(() => {
     const set = new Set<string>();
     customers.forEach(c => {
+      if (territoryFilter.length > 0 && (!c.territory || !territoryFilter.includes(c.territory))) {
+        return;
+      }
       const addr = c.addressDetail || c.address || '';
       const parts = addr.split(',').map(p => p.trim());
       parts.forEach(part => {
@@ -908,11 +946,14 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
       });
     });
     return Array.from(set).sort();
-  }, [customers]);
+  }, [customers, territoryFilter]);
 
   const uniqueHamlets = React.useMemo(() => {
     const set = new Set<string>();
     customers.forEach(c => {
+      if (territoryFilter.length > 0 && (!c.territory || !territoryFilter.includes(c.territory))) {
+        return;
+      }
       const addr = c.addressDetail || c.address || '';
       const parts = addr.split(',').map(p => p.trim());
       parts.forEach(part => {
@@ -935,7 +976,84 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
       });
     });
     return Array.from(set).sort();
-  }, [customers]);
+  }, [customers, territoryFilter]);
+
+  const handleTerritoryFilterChange = (newTerrs: string[]) => {
+    setTerritoryFilter(newTerrs);
+    
+    if (newTerrs.length > 0) {
+      // 1. Filter staff managing these territories
+      const mappedStaffIds = territories
+        .filter(t => newTerrs.includes(t.name) && t.staffId)
+        .map(t => t.staffId) as string[];
+      
+      if (mappedStaffIds.length > 0) {
+        setStaffFilter(mappedStaffIds);
+      } else {
+        setStaffFilter([]);
+      }
+
+      // 2. Find matching customers to get exact communes/hamlets for the newTerrs
+      const matchingCustomers = customers.filter(c => c.territory && newTerrs.includes(c.territory));
+      
+      // Compute unique communes/hamlets for these matching customers
+      const tempCommunes = new Set<string>();
+      const tempHamlets = new Set<string>();
+      
+      matchingCustomers.forEach(c => {
+        const addr = c.addressDetail || c.address || '';
+        const parts = addr.split(',').map(p => p.trim());
+        parts.forEach(part => {
+          const lower = part.toLowerCase();
+          if (
+            lower.startsWith('xã ') || 
+            lower.startsWith('phường ') || 
+            lower.startsWith('thị trấn ')
+          ) {
+            const clean = part.replace(/^(xã|phường|thị trấn)\s+/i, (match) => {
+              return match.charAt(0).toUpperCase() + match.slice(1).toLowerCase();
+            });
+            tempCommunes.add(clean);
+          }
+          if (
+            lower.startsWith('thôn ') || 
+            lower.startsWith('ấp ') || 
+            lower.startsWith('bản ') || 
+            lower.startsWith('xóm ') || 
+            lower.startsWith('tổ ') ||
+            lower.startsWith('phố ') || 
+            lower.startsWith('đường ') ||
+            lower.startsWith('đội ')
+          ) {
+            const clean = part.replace(/^(thôn|ấp|bản|xóm|tổ|phố|đường|đội)\s+/i, (match) => {
+              return match.charAt(0).toUpperCase() + match.slice(1).toLowerCase();
+            });
+            tempHamlets.add(clean);
+          }
+        });
+      });
+
+      const comList = Array.from(tempCommunes);
+      const hamList = Array.from(tempHamlets);
+
+      if (comList.length === 1) {
+        setCommuneFilter(comList[0]);
+      } else {
+        setCommuneFilter('');
+      }
+
+      if (hamList.length === 1) {
+        setHamletFilter(hamList[0]);
+      } else {
+        setHamletFilter('');
+      }
+    } else {
+      // If territory filter is cleared, clear the dependent filters!
+      setStaffFilter([]);
+      setCommuneFilter('');
+      setHamletFilter('');
+    }
+  };
 
   const handleDownloadTemplate = () => {
     const ws = XLSX.utils.json_to_sheet([
@@ -1134,6 +1252,54 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
     setAssignDialogOpen(false);
     setSelectedCustomers([]);
     setSelectedStaffIds([]);
+  };
+
+  const handleSingleAssign = async () => {
+    if (!historyTask) return;
+    if (assignStaffIds.length === 0) {
+      toast.error("Vui lòng chọn ít nhất một nhân viên.");
+      return;
+    }
+
+    const computedCampaignId = historyTask.campaignId || (activeBatch !== 'all' ? activeBatch : (batches[0]?.id || ''));
+    
+    const newAssignments: Assignment[] = assignStaffIds.map((sid) => {
+      return {
+        customerId: historyTask.id,
+        staffId: sid,
+        campaignId: computedCampaignId,
+        status: 'PENDING',
+        assignedDate: new Date().toISOString(),
+        deadline: assignDeadline || undefined,
+        managerNotes: assignNotes || undefined,
+        priority: assignPriority,
+        taskType: assignTaskType,
+        assignedBy: authService.getCurrentUser()?.uid
+      };
+    });
+
+    const result = await dataService.createAssignments(newAssignments);
+    
+    assignStaffIds.forEach(sid => {
+      const staffMember = staff.find(s => s.id === sid);
+      if (staffMember) {
+        notificationService.addNotification({
+          userId: sid,
+          title: 'Nhiệm vụ mới',
+          message: `Bạn được giao nhiệm vụ mới cho khách hàng: ${historyTask.name}. Vui lòng kiểm tra "Nhiệm vụ".`,
+          type: 'TASK',
+          actionUrl: 'tasks'
+        });
+      }
+    });
+
+    if ((result as any).dbError) {
+      toast.error(`Lỗi lưu lên Supabase: ${(result as any).dbError}. Đã lưu cục bộ.`);
+    } else {
+      toast.success(`Đã giao việc thành công cho khách hàng "${historyTask.name}"!`);
+    }
+
+    setHistoryTask(null);
   };
 
   const handleOpenAssignByTerritory = () => {
@@ -1350,7 +1516,7 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
 
       <div className="flex flex-col xl:grid xl:grid-cols-12 gap-6 items-start flex-1 min-h-0">
         {/* Left Sidebar */}
-        <div className="w-full xl:col-span-3 space-y-6 flex flex-col h-auto xl:h-full xl:overflow-y-auto custom-scrollbar shrink-0">
+        <div className={cn("w-full xl:col-span-3 space-y-6 flex flex-col h-auto xl:h-full xl:overflow-y-auto custom-scrollbar shrink-0", isSidebarCollapsed && "hidden")}>
            <Card className="border-slate-200 shadow-sm overflow-hidden">
             <CardHeader className="bg-slate-50/50 pb-3 border-b border-slate-100 flex flex-row items-center justify-between">
                <CardTitle className="text-xs font-black uppercase tracking-wider text-slate-800 flex items-center gap-2">
@@ -1717,79 +1883,99 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
                         </Badge>
                       </div>
                     </div>
-                 </div>
-               )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Right Content */}
-        <div className="w-full xl:col-span-9 space-y-6 flex flex-col h-auto xl:h-full min-h-[600px] xl:min-h-0 shrink-0">
-          <Card className="border-slate-200 shadow-sm overflow-hidden flex flex-col flex-1 h-full min-h-[600px] xl:min-h-0">
-            <CardHeader className="p-6 bg-white border-b border-slate-100 shrink-0">
-               <div className="flex flex-col xl:flex-row gap-4 justify-between items-start">
-                  <div>
-                    <h2 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-                      {selectedCategory?.name}
-                    </h2>
-                    <p className="text-[10px] text-[#005BAA] font-black uppercase tracking-widest mt-1">
-                      {selectedBatch?.name} | {selectedCategory?.services.join(' • ')}
-                    </p>
                   </div>
-                  <div className="flex flex-wrap gap-2 w-full xl:w-auto">
+                )}
+             </CardContent>
+           </Card>
+         </div>
+
+         {/* Right Content */}
+         <div className={cn("w-full space-y-6 flex flex-col h-auto xl:h-full min-h-[600px] xl:min-h-0 shrink-0", isSidebarCollapsed ? "xl:col-span-12" : "xl:col-span-9")}>
+           <Card className="border-slate-200 shadow-sm overflow-hidden flex flex-col flex-1 h-full min-h-[600px] xl:min-h-0">
+             <CardHeader className="p-4 sm:p-5 bg-white border-b border-slate-100 shrink-0">
+                <div className="flex flex-col xl:flex-row gap-4 justify-between items-start xl:items-center">
+                  <div className="flex items-center gap-3">
+                    <Button
+                      id="toggle-sidebar-button"
+                      variant="outline"
+                      size="icon"
+                      className="h-9 w-9 rounded-xl border-slate-200 text-slate-500 hover:text-[#005BAA] hover:bg-blue-50 transition-colors shrink-0"
+                      onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                      title={isSidebarCollapsed ? "Mở rộng phân nhóm" : "Thu gọn phân nhóm (Full màn hình)"}
+                    >
+                      {isSidebarCollapsed ? <Maximize2 className="w-4 h-4" /> : <Minimize2 className="w-4 h-4" />}
+                    </Button>
+                    <div>
+                      <h2 className="text-base sm:text-lg font-black text-slate-900 tracking-tight flex items-center gap-1.5 leading-none">
+                        {isSidebarCollapsed && (
+                          <LayoutGrid className="w-4 h-4 text-[#005BAA] animate-pulse shrink-0" />
+                        )}
+                        {selectedCategory?.name || 'Tất cả khách hàng'}
+                      </h2>
+                      <p className="text-[9px] text-[#005BAA] font-black uppercase tracking-wider mt-1.5 leading-none">
+                        {selectedBatch?.name ? `${selectedBatch.name}` : 'Mọi đợt triển khai'} {selectedCategory?.services && `| ${selectedCategory.services.join(' • ')}`}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto">
                       {mode === 'LIST' && (
-                        <>
-                          <Button onClick={() => setAddCustomerDialogOpen(true)} variant="outline" className="border-slate-200 h-9 text-[10px] font-black uppercase tracking-wider text-emerald-600 rounded-xl hover:bg-emerald-50">
-                            <UserPlus className="w-4 h-4 mr-2" />
-                            Thêm lẻ KH
-                          </Button>
-                          <Button onClick={handleDownloadTemplate} variant="outline" className="border-slate-200 h-9 text-[10px] font-black uppercase tracking-wider text-[#005ba1] rounded-xl">
-                            <Download className="w-4 h-4 mr-2" />
-                            Mẫu Excel
-                          </Button>
-                        </>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="outline" className="border-slate-200 h-9 text-[10px] font-black uppercase tracking-wider text-slate-600 rounded-xl hover:bg-slate-50 shadow-sm">
+                              <Settings className="w-4 h-4 mr-2 text-slate-500" />
+                              Công cụ dữ liệu
+                              <ChevronDown className="w-3.5 h-3.5 ml-1.5 opacity-60" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent className="w-56 rounded-2xl p-1.5 shadow-xl border border-slate-100" align="end">
+                            <span className="block px-2 py-1 text-[8px] font-black uppercase tracking-wider text-slate-400 font-sans">Quản lý khách hàng</span>
+                            <DropdownMenuItem onClick={() => setAddCustomerDialogOpen(true)} className="text-xs font-bold py-2.5 px-3 rounded-xl text-emerald-600 focus:text-emerald-700 focus:bg-emerald-50 cursor-pointer flex items-center gap-2">
+                              <UserPlus className="w-4 h-4 text-emerald-500" />
+                              Thêm lẻ khách hàng
+                            </DropdownMenuItem>
+                            <div className="h-px bg-slate-100 my-1.5" />
+                            <span className="block px-2 py-1 text-[8px] font-black uppercase tracking-wider text-slate-400 font-sans">Thao tác Excel</span>
+                            <DropdownMenuItem onClick={handleDownloadTemplate} className="text-xs font-bold py-2.5 px-3 rounded-xl text-blue-600 focus:text-blue-700 focus:bg-blue-50 cursor-pointer flex items-center gap-2">
+                              <Download className="w-4 h-4 text-blue-500" />
+                              Tải tệp mẫu Excel
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={handleImportExcel} disabled={isImporting} className="text-xs font-bold py-2.5 px-3 rounded-xl text-slate-700 focus:bg-slate-50 cursor-pointer flex items-center gap-2">
+                              {isImporting ? <Loader2 className="w-4 h-4 animate-spin text-[#005ba1]" /> : <FileUp className="w-4 h-4 text-[#005ba1]" />}
+                              Import danh sách Excel
+                            </DropdownMenuItem>
+                            {isManageMode && activeBatch !== 'all' && (
+                              <>
+                                <DropdownMenuSeparator className="bg-slate-100 my-1.5" />
+                                <span className="block px-2 py-1 text-[8px] font-black uppercase tracking-wider text-rose-450 font-bold font-sans">Tác vụ khẩn</span>
+                                <DropdownMenuItem onClick={handleDeleteAllInBatch} className="text-xs font-bold py-2.5 px-3 rounded-xl text-rose-600 focus:text-rose-700 focus:bg-rose-50 cursor-pointer flex items-center gap-2">
+                                  <Trash2 className="w-4 h-4 text-rose-500" />
+                                  Xóa sạch đợt hiện tại
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       )}
                       <Button 
                         onClick={() => setExportDialogOpen(true)} 
                         variant="outline" 
-                        className="border-slate-200 h-9 text-[10px] font-black uppercase tracking-wider text-orange-600 rounded-xl hover:bg-orange-50"
+                        className="border-slate-200 h-9 text-[10px] font-black uppercase tracking-wider text-orange-600 rounded-xl hover:bg-orange-50 shadow-sm"
                       >
                         <Download className="w-4 h-4 mr-2" />
                         Xuất báo cáo
                       </Button>
-                      {mode === 'LIST' && (
-                        <Button onClick={handleImportExcel} 
-                          disabled={isImporting}
-                          className="bg-[#005ba1] hover:bg-blue-700 h-9 font-black shadow-lg shadow-blue-100 uppercase text-[10px] tracking-wider rounded-xl"
-                        >
-                          {isImporting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <FileUp className="w-4 h-4 mr-2" />}
-                          Import DS
-                        </Button>
-                      )}
-                      {mode === 'LIST' && isManageMode && activeBatch !== 'all' && (
-                        <Button 
-                          onClick={handleDeleteAllInBatch}
-                          variant="destructive"
-                          className="h-9 font-black shadow-lg shadow-red-100 uppercase text-[10px] tracking-wider rounded-xl"
-                        >
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          Xóa sạch đợt
-                        </Button>
-                      )}
-                      {mode === 'ASSIGN' && (
-                        <Button 
-                          onClick={() => setAssignDialogOpen(true)}
-                          disabled={selectedCustomers.length === 0}
-                          className="bg-[#005BAA] hover:bg-blue-700 h-9 font-black shadow-lg shadow-blue-100 uppercase text-[10px] tracking-wider rounded-xl disabled:opacity-50"
-                        >
-                          <ClipboardList className="w-4 h-4 mr-2" />
-                          Giao tập khách hàng theo chiến dịch
-                        </Button>
-                      )}
+                      <Button 
+                        onClick={() => setAssignDialogOpen(true)}
+                        disabled={selectedCustomers.length === 0}
+                        className="bg-[#005BAA] hover:bg-blue-700 h-9 font-black shadow-lg shadow-blue-100 uppercase text-[10px] tracking-wider rounded-xl disabled:opacity-50"
+                      >
+                        <ClipboardList className="w-4 h-4 mr-2" />
+                        Giao tập khách hàng theo chiến dịch
+                      </Button>
                   </div>
                </div>
             </CardHeader>
-            <CardContent className="p-6 bg-slate-50/30 flex-1 flex flex-col min-h-0 relative">
+            <CardContent className="p-4 sm:p-6 bg-slate-50/30 flex-1 flex flex-col min-h-0 relative">
                {loading ? (
                  <div className="flex flex-col items-center justify-center h-64 text-slate-400">
                     <Loader2 className="w-8 h-8 animate-spin mb-4" />
@@ -1797,50 +1983,50 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
                  </div>
                ) : (
                  <div className="flex flex-col flex-1 h-full min-h-0">
-                  <div className="flex flex-col md:flex-row gap-4 justify-between items-center mb-6">
-                    <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-                      <div className="relative flex-1 md:w-80 min-w-[240px]">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                   <div className="flex flex-col md:flex-row gap-3 justify-between items-center mb-4">
+                    <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
+                      <div className="relative flex-1 md:w-72 min-w-[220px]">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
                         <Input 
                           placeholder="Tìm theo tên hoặc số điện thoại..." 
-                          className="pl-10 bg-white border-slate-200 h-10 rounded-xl" 
+                          className="pl-9 bg-white border-slate-200 h-9 text-xs rounded-xl shadow-sm focus-visible:ring-1 focus-visible:ring-blue-400" 
                           value={searchTerm}
                           onChange={(e) => setSearchTerm(e.target.value)}
                         />
                       </div>
-                      <Select value={statusFilter} onValueChange={setStatusFilter}>
-                        <SelectTrigger className="w-[160px] bg-white border-slate-200 h-10 rounded-xl font-bold text-[11px] uppercase shadow-sm">
-                          <SelectValue placeholder="Trạng thái" />
-                        </SelectTrigger>
-                        <SelectContent className="rounded-xl">
-                          <SelectItem value="ALL" className="text-[11px] font-bold">Tất cả trạng thái</SelectItem>
-                          <SelectItem value="UNASSIGNED" className="text-[11px] font-bold text-slate-400">Chưa giao</SelectItem>
-                          <SelectItem value="PENDING" className="text-[11px] font-bold text-yellow-600">Đã giao / Chờ</SelectItem>
-                          <SelectItem value="IN_PROGRESS" className="text-[11px] font-bold text-blue-600">Đang xử lý</SelectItem>
-                          <SelectItem value="COMPLETED" className="text-[11px] font-bold text-emerald-600">Đã hoàn tất</SelectItem>
-                        </SelectContent>
-                      </Select>
+                        <Select value={statusFilter} onValueChange={setStatusFilter}>
+                          <SelectTrigger className="w-[145px] bg-white border-slate-200 h-9 rounded-xl font-bold text-[10px] uppercase shadow-sm">
+                            <SelectValue placeholder="Trạng thái" />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-xl">
+                            <SelectItem value="ALL" className="text-[10px] font-bold">Tất cả trạng thái</SelectItem>
+                            <SelectItem value="UNASSIGNED" className="text-[10px] font-bold text-slate-400">Chưa giao</SelectItem>
+                            <SelectItem value="PENDING" className="text-[10px] font-bold text-yellow-600">Đã giao / Chờ</SelectItem>
+                            <SelectItem value="IN_PROGRESS" className="text-[10px] font-bold text-blue-600">Đang xử lý</SelectItem>
+                            <SelectItem value="COMPLETED" className="text-[10px] font-bold text-emerald-600">Đã hoàn tất</SelectItem>
+                          </SelectContent>
+                        </Select>
 
-                      <Button 
-                        onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                        variant="outline" 
-                        className={cn(
-                          "gap-2 border-slate-200 bg-white hover:bg-blue-50 h-10 text-xs font-bold text-slate-600 rounded-xl transition-all shadow-sm",
-                          showAdvancedFilters && "bg-blue-50 border-blue-400 text-[#005BAA]"
-                        )}
-                      >
-                        <Filter className="w-4 h-4" />
-                        Lọc nâng cao
-                        {(revenueRange !== 'ALL' || regionFilter.length > 0 || territoryFilter.length > 0 || assignedFilter !== 'ALL' || communeFilter !== '' || hamletFilter !== '' || staffFilter.length > 0) && (
-                          <span className="ml-1 w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
-                        )}
-                      </Button>
+                        <Button 
+                          onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                          variant="outline"
+                          className={cn(
+                            "gap-1.5 border-slate-200 bg-white hover:bg-blue-50 h-9 text-xs font-bold text-slate-600 rounded-xl transition-all shadow-sm",
+                            showAdvancedFilters && "bg-blue-50 border-blue-400 text-[#005BAA]"
+                          )}
+                        >
+                          <Filter className="w-3.5 h-3.5" />
+                          Lọc nâng cao
+                          {(revenueRange !== "ALL" || regionFilter.length > 0 || territoryFilter.length > 0 || assignedFilter !== "ALL" || communeFilter !== "" || hamletFilter !== "" || staffFilter.length > 0) && (
+                            <span className="ml-1 w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
+                          )}
+                        </Button>
 
-                      <Button onClick={handleOpenAssignByTerritory} variant="outline" className="gap-2 border-slate-200 bg-white hover:bg-emerald-50 h-10 text-xs font-bold text-emerald-600 rounded-xl shadow-sm">
-                        <MapIcon className="w-4 h-4" />
-                        Giao theo Ô
-                      </Button>
-                    </div>
+                        <Button onClick={handleOpenAssignByTerritory} variant="outline" className="gap-1.5 border-slate-200 bg-white hover:bg-emerald-50 h-9 text-xs font-bold text-emerald-600 rounded-xl shadow-sm">
+                          <MapIcon className="w-3.5 h-3.5" />
+                          Giao theo Ô
+                        </Button>
+                      </div>
                     
                     <div className="flex items-center gap-3 w-full md:w-auto justify-end">
                       {/* Functions removed per request */}
@@ -1945,7 +2131,7 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
                               <DropdownMenuContent className="w-auto max-w-[400px] min-w-[240px] rounded-xl max-h-[400px] overflow-y-auto custom-scrollbar" align="start">
                                 <DropdownMenuCheckboxItem
                                   checked={territoryFilter.length === 0}
-                                  onCheckedChange={() => setTerritoryFilter([])}
+                                  onCheckedChange={() => handleTerritoryFilterChange([])}
                                   className="text-[11px] font-bold py-2"
                                 >
                                   Tất cả địa bàn
@@ -1955,9 +2141,10 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
                                     key={t}
                                     checked={territoryFilter.includes(t)}
                                     onCheckedChange={(checked) => {
-                                      setTerritoryFilter(prev => 
-                                        checked ? [...prev, t] : prev.filter(x => x !== t)
-                                      )
+                                      const updated = checked 
+                                        ? [...territoryFilter, t] 
+                                        : territoryFilter.filter(x => x !== t);
+                                      handleTerritoryFilterChange(updated);
                                     }}
                                     className="text-[11px] font-bold py-2"
                                   >
@@ -2225,7 +2412,7 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
                                 >
                                   <History className="w-3.5 h-3.5" />
                                 </Button>
-                                {mode !== 'LIST' && (
+                                {(mode !== 'LIST' || true) && (
                                  <Button 
                                    onClick={() => {
                                      setSelectedCustomers([customer.id]);
@@ -2406,7 +2593,7 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
                   <Trash2 className="w-4 h-4 mr-2" /> Xóa tập KH
                 </Button>
               )}
-              {mode !== 'LIST' && (
+              {(mode !== 'LIST' || true) && (
                 <>
                   <Button onClick={handleDeleteAssignments} variant="ghost" className="text-orange-400 hover:text-orange-500 hover:bg-orange-500/10 font-bold h-10 px-4 rounded-xl text-[11px] uppercase tracking-wide">
                     <Trash2 className="w-4 h-4 mr-2" /> Xóa nhiệm vụ
@@ -2738,208 +2925,316 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
         </DialogContent>
       </Dialog>
       <Dialog open={!!historyTask} onOpenChange={(open) => !open && setHistoryTask(null)}>
-        <DialogContent className="sm:max-w-lg rounded-3xl p-0 overflow-hidden border-none shadow-2xl">
-          <div className="bg-slate-900 p-6 text-white font-bold">
+        <DialogContent className="sm:max-w-[95vw] lg:max-w-[90vw] xl:max-w-[85vw] h-[92vh] max-h-[95vh] rounded-3xl p-0 overflow-hidden border-none shadow-2xl flex flex-col">
+          <div className="bg-[#005BAA] p-6 text-white font-bold shrink-0 flex items-center justify-between">
             <DialogHeader>
               <DialogTitle className="text-xl font-black uppercase tracking-tight text-white flex items-center gap-2">
-                <Users className="w-5 h-5 text-blue-400" />
-                Chi tiết khách hàng
+                <Users className="w-5 h-5 text-blue-200 animate-pulse shrink-0" />
+                Chi tiết & Chỉ đạo giao việc khách hàng
               </DialogTitle>
               <DialogDescription className="text-white/70 text-[10px] font-black uppercase tracking-widest mt-1">
-                Thông tin đính kèm để giao nhiệm vụ
+                Xem thông tin hồ sơ và tích hợp chỉ đạo bàn giao trực tiếp cho nhân sự thực hiện
               </DialogDescription>
             </DialogHeader>
+            <div className="hidden sm:flex items-center gap-2">
+              <span className="text-[10px] text-blue-100 font-black uppercase tracking-wider bg-white/10 px-3 py-1.5 rounded-full backdrop-blur-sm">
+                Trạng thái: {getTaskStatusLabel(historyTask?.taskStatus || 'UNASSIGNED')}
+              </span>
+            </div>
           </div>
-          <div className="p-8 space-y-6 bg-white max-h-[70vh] overflow-y-auto custom-scrollbar">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <div className="space-y-1">
-                <p className="text-[10px] font-black uppercase text-slate-400 tracking-tight">Tên khách hàng</p>
-                <p className="text-sm font-black text-slate-900 uppercase">{historyTask?.name}</p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-[10px] font-black uppercase text-slate-400 tracking-tight">Số điện thoại</p>
-                <p className="text-sm font-black text-[#005BAA] font-mono">{historyTask?.phone}</p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-[10px] font-black uppercase text-slate-400 tracking-tight">Mã thuê bao (MA_TB)</p>
-                <p className="text-sm font-black text-slate-900 font-mono">{historyTask?.subscriptionId || '---'}</p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-[10px] font-black uppercase text-slate-400 tracking-tight">Doanh thu hiện tại</p>
-                <p className="text-sm font-black text-emerald-600 font-mono">{historyTask?.revenue?.toLocaleString()} đ</p>
-              </div>
-            </div>
 
-            <div className="h-px bg-slate-100" />
+          <div className="flex-1 min-h-0 overflow-hidden grid grid-cols-1 lg:grid-cols-12 gap-0 bg-slate-50">
+            {/* LEFT COLUMN: Customer Detailed Profile (7/12 cols) */}
+            <div className="lg:col-span-7 bg-white p-6 sm:p-8 overflow-y-auto custom-scrollbar h-full space-y-6 border-r border-slate-100">
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
+                  <div className="w-1.5 h-4 bg-[#005BAA] rounded-full" />
+                  <h3 className="text-sm font-black text-slate-850 uppercase tracking-tight">Hồ sơ khách hàng</h3>
+                </div>
 
-            <div className="space-y-1">
-              <p className="text-[10px] font-black uppercase text-slate-400 tracking-tight">Địa chỉ lắp đặt (DIACHI_LD)</p>
-              <p className="text-sm font-bold text-slate-700">{historyTask?.addressDetail || historyTask?.address || '---'}</p>
-              <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">{historyTask?.region}</p>
-            </div>
-
-            <div className="h-px bg-slate-100" />
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <div className="space-y-1">
-                <p className="text-[10px] font-black uppercase text-slate-400 tracking-tight">Ô địa bàn</p>
-                <div className="flex items-center gap-2 mt-1">
-                  <MapIcon className="w-4 h-4 text-blue-500" />
-                  <p className="text-sm font-black text-slate-900 uppercase">{historyTask?.territory || 'Chưa gán'}</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black uppercase text-slate-400 tracking-tight">Tên khách hàng</p>
+                    <p className="text-sm font-black text-slate-900 uppercase">{historyTask?.name}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black uppercase text-slate-400 tracking-tight">Số điện thoại</p>
+                    <p className="text-sm font-black text-[#005BAA] font-mono">{historyTask?.phone}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black uppercase text-slate-400 tracking-tight">Mã thuê bao (MA_TB)</p>
+                    <p className="text-sm font-black text-slate-900 font-mono">{historyTask?.subscriptionId || '---'}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black uppercase text-slate-400 tracking-tight">Doanh thu hiện tại</p>
+                    <p className="text-sm font-black text-emerald-600 font-mono">{historyTask?.revenue?.toLocaleString()} đ</p>
+                  </div>
                 </div>
               </div>
-              <div className="space-y-1">
-                <p className="text-[10px] font-black uppercase text-slate-400 tracking-tight">Dịch vụ đang dùng</p>
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {historyTask?.services?.map((s: string, i: number) => (
-                    <Badge key={i} variant="outline" className="text-[9px] font-black uppercase bg-slate-50 border-slate-200">{s}</Badge>
-                  ))}
+
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
+                  <div className="w-1.5 h-4 bg-[#005BAA] rounded-full" />
+                  <h3 className="text-sm font-black text-slate-850 uppercase tracking-tight">Địa chỉ & Phân khu chuyên quản</h3>
                 </div>
-              </div>
-            </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <div className="space-y-1">
-                <p className="text-[10px] font-black uppercase text-slate-400 tracking-tight">NVKD Quản lý</p>
-                <p className="text-sm font-bold text-slate-700">{historyTask?.salesManager || '---'}</p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-[10px] font-black uppercase text-slate-400 tracking-tight">NVKT Quản lý</p>
-                <p className="text-sm font-bold text-slate-700">{historyTask?.technicalManager || '---'}</p>
-              </div>
-            </div>
+                <div className="space-y-4">
+                  <div className="space-y-1 bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
+                    <p className="text-[10px] font-black uppercase text-slate-400 tracking-tight">Địa chỉ lắp đặt (DIACHI_LD)</p>
+                    <p className="text-sm font-bold text-slate-700">{historyTask?.addressDetail || historyTask?.address || '---'}</p>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">{historyTask?.region}</p>
+                  </div>
 
-            <div className="h-px bg-slate-100" />
-
-            {historyTask?.taskStatus !== 'UNASSIGNED' && (
-              <>
-                <div className="space-y-3 bg-blue-50/20 p-4 rounded-3xl border border-blue-50/50">
-                  <p className="text-[10px] font-black uppercase text-slate-400 tracking-tight flex items-center gap-1.5">
-                    <ClipboardList className="w-3.5 h-3.5 text-[#005BAA]" />
-                    Thông tin chỉ đạo giao việc
-                  </p>
-                  
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-0.5">
-                      <p className="text-[9px] text-slate-400 font-bold uppercase block">Loại hình</p>
-                      <p className="text-xs font-bold text-slate-800">{historyTask?.taskType || 'Tư vấn nâng gói Cáp quang'}</p>
-                    </div>
-                    <div className="space-y-0.5">
-                      <p className="text-[9px] text-slate-400 font-bold uppercase block">Mức độ ưu tiên</p>
-                      <div className="flex items-center gap-1 mt-0.5">
-                        {historyTask?.priority === 'HIGH' ? (
-                          <Badge className="bg-rose-50 text-rose-700 hover:bg-rose-50 border-rose-100 text-[9px] font-black uppercase py-0.5 px-2 rounded">Khẩn cấp / Cao</Badge>
-                        ) : historyTask?.priority === 'LOW' ? (
-                          <Badge className="bg-emerald-50 text-emerald-700 hover:bg-emerald-50 border-emerald-100 text-[9px] font-black uppercase py-0.5 px-2 rounded">Thấp</Badge>
-                        ) : (
-                          <Badge className="bg-amber-50 text-amber-700 hover:bg-amber-50 border-amber-100 text-[9px] font-black uppercase py-0.5 px-2 rounded">Trung bình</Badge>
-                        )}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-black uppercase text-slate-400 tracking-tight">Ô địa bàn</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <MapIcon className="w-4 h-4 text-blue-500 shrink-0" />
+                        <p className="text-sm font-black text-slate-900 uppercase">{historyTask?.territory || 'Chưa gán'}</p>
                       </div>
                     </div>
-                    <div className="space-y-0.5 col-span-2">
-                      <p className="text-[9px] text-slate-400 font-bold uppercase">Hạn xử lý (Deadline)</p>
-                      <p className="text-xs font-mono font-black text-rose-600">
-                        {historyTask?.deadline 
-                          ? new Date(historyTask.deadline).toLocaleDateString('vi-VN', {day: '2-digit', month: '2-digit', year: 'numeric'}) 
-                          : 'Chưa thiết lập'}
-                      </p>
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-black uppercase text-slate-400 tracking-tight">Dịch vụ đang dùng</p>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {historyTask?.services?.map((s: string, i: number) => (
+                          <Badge key={i} variant="outline" className="text-[9px] font-black uppercase bg-white border-slate-200">{s}</Badge>
+                        ))}
+                      </div>
                     </div>
-                    <div className="space-y-0.5 col-span-2">
-                       <p className="text-[9px] text-slate-400 font-bold uppercase">Nội dung chỉ đạo / Ghi chú</p>
-                       <p className="text-xs font-bold text-slate-700 italic bg-white p-2.5 rounded-xl border border-slate-100">{historyTask?.managerNotes || 'Không có ghi chú chỉ đạo cụ thể.'}</p>
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-black uppercase text-slate-400 tracking-tight">NVKD Quản lý</p>
+                      <p className="text-xs font-bold text-slate-700">{historyTask?.salesManager || '---'}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-black uppercase text-slate-400 tracking-tight">NVKT Quản lý</p>
+                      <p className="text-xs font-bold text-slate-700">{historyTask?.technicalManager || '---'}</p>
                     </div>
                   </div>
                 </div>
-
-                <div className="h-px bg-slate-100" />
-              </>
-            )}
-
-            <div className="space-y-1">
-              <p className="text-[10px] font-black uppercase text-slate-400 tracking-tight">Trạng thái giao nhiệm vụ</p>
-              <div className="flex items-center justify-between mt-2 py-3 px-4 bg-slate-50 rounded-2xl border border-slate-100">
-                <div className="flex items-center gap-3">
-                  <div className={cn("w-2 h-2 rounded-full", historyTask?.assignedTo ? "bg-emerald-500" : "bg-slate-300")} />
-                  <p className="text-xs font-bold text-slate-600">{historyTask?.assignedTo ? `Đã giao cho: ${historyTask.assignedTo}` : 'Chưa giao nhân sự'}</p>
-                </div>
-                <Badge className={cn("text-[9px] font-black uppercase tracking-widest", getTaskStatusStyle(historyTask?.taskStatus || 'UNASSIGNED'))}>
-                  {getTaskStatusLabel(historyTask?.taskStatus || 'UNASSIGNED')}
-                </Badge>
               </div>
-            </div>
 
-            {historyTask?.taskStatus !== 'UNASSIGNED' && (
-              <>
-                <div className="h-px bg-slate-100" />
+              {/* Real implementation results (if any) */}
+              {historyTask?.taskStatus !== 'UNASSIGNED' && (
                 <div className="space-y-4">
-                  <p className="text-[10px] font-black uppercase text-slate-400 tracking-tight">Kết quả triển khai thực tế</p>
-                  
-                  {historyTask?.checkInLocation && (
-                    <div className="flex items-center justify-between p-4 bg-blue-50/50 border border-blue-100 rounded-2xl">
-                      <div className="flex items-center gap-3">
-                        <MapIcon className="w-5 h-5 text-[#005BAA]" />
-                        <div>
-                          <p className="text-[11px] font-black text-slate-900 uppercase">Tọa độ Check-in</p>
-                          <p className="text-[10px] font-mono text-slate-500">{historyTask.checkInLocation.lat}, {historyTask.checkInLocation.lng}</p>
-                        </div>
-                      </div>
-                      <Button 
-                        size="sm" 
-                        variant="link" 
-                        className="text-[10px] font-black text-[#005BAA] uppercase p-0"
-                        onClick={() => window.open(`https://www.google.com/maps?q=${historyTask.checkInLocation.lat},${historyTask.checkInLocation.lng}`, '_blank')}
-                      >
-                        Mở Bản đồ
-                      </Button>
-                    </div>
-                  )}
+                  <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
+                    <div className="w-1.5 h-4 bg-[#005BAA] rounded-full" />
+                    <h3 className="text-sm font-black text-slate-850 uppercase tracking-tight">Kết quả triển khai thực tế</h3>
+                  </div>
 
-                  {historyTask?.images && historyTask.images.length > 0 && (
-                    <div className="space-y-2">
-                       <p className="text-[10px] font-black text-slate-400 uppercase ml-1">Hình ảnh hiện trường ({historyTask.images.length})</p>
-                       <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                  <div className="space-y-4 bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
+                    {historyTask?.checkInLocation && (
+                      <div className="flex items-center justify-between p-3.5 bg-white border border-slate-150 rounded-xl">
+                        <div className="flex items-center gap-3">
+                          <MapIcon className="w-5 h-5 text-[#005BAA] shrink-0" />
+                          <div>
+                            <p className="text-[11px] font-black text-slate-900 uppercase">Tọa độ Check-in</p>
+                            <p className="text-[10px] font-mono text-slate-500">{historyTask.checkInLocation.lat}, {historyTask.checkInLocation.lng}</p>
+                          </div>
+                        </div>
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="text-[10px] font-black text-[#005BAA] uppercase h-8 border-slate-200"
+                          onClick={() => window.open(`https://www.google.com/maps?q=${historyTask.checkInLocation.lat},${historyTask.checkInLocation.lng}`, '_blank')}
+                        >
+                          Mở Bản đồ
+                        </Button>
+                      </div>
+                    )}
+
+                    {historyTask?.images && historyTask.images.length > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-[10px] font-black text-slate-400 uppercase ml-1">Hình ảnh đính kèm hiện trường ({historyTask.images.length})</p>
+                        <div className="flex gap-2.5 overflow-x-auto pb-2 scrollbar-hide">
                           {historyTask.images.map((img: string, i: number) => (
                             <div key={i} className="relative group shrink-0">
                                <img 
                                  src={img} 
                                  alt={`Evidence ${i}`} 
-                                 className="w-24 h-24 object-cover rounded-xl border border-slate-200 transition-all duration-300 hover:-translate-y-6 hover:scale-[2] hover:z-50 hover:shadow-2xl relative cursor-zoom-in origin-bottom"
+                                 className="w-24 h-24 object-cover rounded-xl border border-slate-200 transition-all duration-300 hover:scale-105 cursor-zoom-in"
                                  referrerPolicy="no-referrer"
                                />
                                <Button 
                                  size="icon" 
                                  variant="secondary" 
-                                 className="absolute inset-0 m-auto w-8 h-8 rounded-full opacity-0 group-hover:opacity-100 transition-opacity bg-white/80"
+                                 className="absolute inset-0 m-auto w-8 h-8 rounded-full opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 shadow"
                                  onClick={() => window.open(img, '_blank')}
                                >
-                                 <Search className="w-4 h-4" />
+                                 <Search className="w-4 h-4 text-slate-600" />
                                </Button>
                             </div>
                           ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {historyTask?.notes && (
+                      <div className="space-y-2 pt-1">
+                        <p className="text-[10px] font-black text-slate-400 uppercase ml-1">Phản hồi từ nhân viên thụ lý</p>
+                        <div className="p-3.5 bg-white border border-slate-150 rounded-xl text-[11px] font-medium text-slate-700 italic">
+                          "{historyTask.notes}"
+                        </div>
+                      </div>
+                    )}
+
+                    {historyTask?.assignedDate && (
+                      <p className="text-[9px] text-slate-400 text-right uppercase font-bold pt-1">
+                         Lần cuối cập nhật: {new Date(historyTask.assignedDate).toLocaleString('vi-VN')}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* RIGHT COLUMN: Direct Task Assign Panel (5/12 cols) */}
+            <div className="lg:col-span-5 bg-slate-100/70 p-6 sm:p-8 overflow-y-auto custom-scrollbar h-full border-t lg:border-t-0 border-slate-150 flex flex-col justify-between">
+              <div className="space-y-6">
+                <div className="pb-2 border-b border-slate-200 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <ClipboardList className="w-4 h-4 text-[#005BAA] shrink-0" />
+                    <h3 className="text-sm font-black text-slate-900 uppercase tracking-tight">Chỉ đạo & Giao việc</h3>
+                  </div>
+                  <Badge className={cn("text-[9px] font-black uppercase tracking-widest", getTaskStatusStyle(historyTask?.taskStatus || 'UNASSIGNED'))}>
+                    {getTaskStatusLabel(historyTask?.taskStatus || 'UNASSIGNED')}
+                  </Badge>
+                </div>
+
+                {/* Choose Staff Component */}
+                <div className="space-y-3 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[11px] font-black uppercase text-slate-800 tracking-wider">
+                      Chọn nhân sự thụ lý ({assignStaffIds.length})
+                    </label>
+                    {assignStaffIds.length > 0 && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-auto p-0 text-[10px] font-black uppercase text-rose-500 hover:text-rose-600"
+                        onClick={() => setAssignStaffIds([])}
+                      >
+                        Bỏ chọn hết
+                      </Button>
+                    )}
+                  </div>
+
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <Input 
+                      placeholder="Tìm kiếm nhân sự..."
+                      value={assignStaffSearchTerm}
+                      onChange={(e) => setAssignStaffSearchTerm(e.target.value)}
+                      className="pl-10 h-10 rounded-xl text-xs"
+                    />
+                  </div>
+
+                  <div className="max-h-52 overflow-y-auto custom-scrollbar space-y-1.5 p-1 bg-slate-50/50 rounded-xl border border-slate-150">
+                    {staff.filter(s => s.name.toLowerCase().includes(assignStaffSearchTerm.toLowerCase())).map(s => {
+                      const isChecked = assignStaffIds.includes(s.id);
+                      return (
+                        <div 
+                          key={s.id} 
+                          className={cn(
+                            "flex items-center justify-between p-2.5 rounded-lg transition-all cursor-pointer border text-xs",
+                            isChecked 
+                              ? "bg-blue-50/80 border-blue-200" 
+                              : "bg-white border-transparent hover:border-slate-200"
+                          )}
+                          onClick={() => {
+                            setAssignStaffIds(prev => 
+                              prev.includes(s.id) ? prev.filter(id => id !== s.id) : [...prev, s.id]
+                            );
+                          }}
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-7 h-7 rounded-full bg-slate-200 flex items-center justify-center text-[9px] font-black text-slate-500">
+                              {s.name.split(' ').pop()?.charAt(0)}
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="font-bold text-slate-900">{s.name}</span>
+                              <span className="text-[8px] text-slate-400 font-black uppercase">{s.role}</span>
+                            </div>
+                          </div>
+                          <Checkbox checked={isChecked} />
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* Additional task details component */}
+                <div className="space-y-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                  <div className="space-y-1.55">
+                     <label className="text-[10px] font-black uppercase text-slate-500 block ml-0.5">Loại hình triển khai</label>
+                     <Select value={assignTaskType} onValueChange={setAssignTaskType}>
+                       <SelectTrigger className="h-10 rounded-xl text-xs font-semibold">
+                         <SelectValue placeholder="Chọn loại hình..." />
+                       </SelectTrigger>
+                       <SelectContent className="rounded-xl">
+                         {taskTypes.map(t => (
+                           <SelectItem key={t} value={t} className="text-xs font-bold">{t === 'Khác' ? 'Nhiệm vụ khác' : t}</SelectItem>
+                         ))}
+                       </SelectContent>
+                     </Select>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                       <label className="text-[10px] font-black uppercase text-slate-500 block ml-0.5">Độ ưu tiên</label>
+                       <Select value={assignPriority} onValueChange={(v: any) => setAssignPriority(v)}>
+                         <SelectTrigger className="h-10 rounded-xl text-xs font-semibold">
+                           <SelectValue placeholder="Mức ưu tiên..." />
+                         </SelectTrigger>
+                         <SelectContent className="rounded-xl">
+                           <SelectItem value="HIGH" className="text-xs font-black text-rose-600">🔴 Cao / Khẩn</SelectItem>
+                           <SelectItem value="MEDIUM" className="text-xs font-bold text-amber-600">🟡 Trung bình</SelectItem>
+                           <SelectItem value="LOW" className="text-xs font-bold text-emerald-600">🟢 Thấp</SelectItem>
+                         </SelectContent>
+                       </Select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                       <label className="text-[10px] font-black uppercase text-slate-500 block ml-0.5">Deadline</label>
+                       <div className="relative">
+                         <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                         <Input
+                           type="date"
+                           className="pl-9 h-10 rounded-xl text-xs font-semibold"
+                           value={assignDeadline}
+                           onChange={(e) => setAssignDeadline(e.target.value)}
+                         />
                        </div>
                     </div>
-                  )}
+                  </div>
 
-                  {historyTask?.notes && (
-                    <div className="space-y-2">
-                      <p className="text-[10px] font-black text-slate-400 uppercase ml-1">Phản hồi/Ghi chú của NV</p>
-                      <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl text-[11px] font-medium text-slate-700 italic">
-                        "{historyTask.notes}"
-                      </div>
-                    </div>
-                  )}
-
-                  {historyTask?.assignedDate && (
-                    <p className="text-[9px] text-slate-400 text-right uppercase font-bold">
-                       Lần cuối cập nhật: {new Date(historyTask.assignedDate).toLocaleString('vi-VN')}
-                    </p>
-                  )}
+                  <div className="space-y-1.5">
+                     <label className="text-[10px] font-black uppercase text-slate-500 block ml-0.5">Nội dung chỉ đạo / Ghi chú quản lý</label>
+                     <textarea 
+                       placeholder="Nhập ghi chú hoặc yêu cầu chỉ đạo chi tiết khi giao nhiệm vụ..."
+                       value={assignNotes}
+                       onChange={(e) => setAssignNotes(e.target.value)}
+                       className="flex min-h-[90px] w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs placeholder:text-slate-350 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:border-transparent resize-none font-medium text-slate-700"
+                     />
+                  </div>
                 </div>
-              </>
-            )}
-          </div>
-          <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-end">
-            <Button onClick={() => setHistoryTask(null)} className="bg-slate-900 hover:bg-slate-800 text-white font-black uppercase text-[11px] px-8 rounded-xl h-11">Đóng cửa sổ</Button>
+              </div>
+
+              <div className="flex gap-3 pt-6 shrink-0 mt-6 lg:mt-0">
+                <Button 
+                  onClick={() => setHistoryTask(null)} 
+                  variant="ghost" 
+                  className="flex-1 font-black text-slate-405 h-12 rounded-xl uppercase text-[11px] tracking-wider border border-slate-200 bg-white hover:bg-slate-50"
+                >
+                  Đóng lại
+                </Button>
+                <Button 
+                  onClick={handleSingleAssign} 
+                  className="flex-1 font-black text-white bg-[#005BAA] hover:bg-blue-700 h-12 rounded-xl uppercase text-[11px] tracking-wider shadow-lg shadow-blue-100"
+                >
+                  Xác nhận giao việc
+                </Button>
+              </div>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
