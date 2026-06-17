@@ -1,8 +1,28 @@
 node_modules/
 build/
 dist/
+dist-ssr/
 coverage/
 .DS_Store
 *.log
 .env*
 !.env.example
+
+# Ignore self-referential or temporary app folder inside workspace
+app/
+
+# Playgrounds & Temp scripts
+temporary_scripts/
+fix*.ts
+fix*.js
+fast_patch*.ts
+cleanup.ts
+clear_all_assignments.ts
+test-*.ts
+*test-*.ts
+
+# Database scripts & Dumps
+database_scripts/
+*.sql
+
+

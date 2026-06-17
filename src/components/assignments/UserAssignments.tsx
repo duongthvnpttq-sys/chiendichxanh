@@ -94,8 +94,11 @@ export default function UserAssignments({ mode = 'ASSIGN', onNavigate }: UserAss
   const [revenueRange, setRevenueRange] = React.useState('ALL');
   const [territoryFilter, setTerritoryFilter] = React.useState<string[]>([]);
   const [regionFilter, setRegionFilter] = React.useState<string[]>([]);
+  const [communeFilter, setCommuneFilter] = React.useState('');
+  const [hamletFilter, setHamletFilter] = React.useState('');
   const [showAdvancedFilters, setShowAdvancedFilters] = React.useState(false);
   const [assignedFilter, setAssignedFilter] = React.useState('ALL');
+  const [staffFilter, setStaffFilter] = React.useState<string[]>([]);
   const [isImporting, setIsImporting] = React.useState(false);
   const [historyTask, setHistoryTask] = React.useState<any>(null);
   const [territories, setTerritories] = React.useState<Territory[]>([]);
@@ -801,6 +804,17 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
         if (territoryFilter.length > 0 && (!c.territory || !territoryFilter.includes(c.territory))) continue;
         if (regionFilter.length > 0 && (!c.region || !regionFilter.includes(c.region))) continue;
 
+        const customerAddress = (c.addressDetail || c.address || '').toLowerCase();
+        if (communeFilter) {
+          const cleanCommune = communeFilter.trim().toLowerCase();
+          if (cleanCommune && !customerAddress.includes(cleanCommune)) continue;
+        }
+
+        if (hamletFilter) {
+          const cleanHamlet = hamletFilter.trim().toLowerCase();
+          if (cleanHamlet && !customerAddress.includes(cleanHamlet)) continue;
+        }
+
         if (query && !(c.name.toLowerCase().includes(query) || (c.phone && c.phone.includes(query)) || (c.subscriptionId && c.subscriptionId.toLowerCase().includes(query)))) {
           continue;
         }
@@ -812,6 +826,10 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
 
         if (assignedFilter === 'ASSIGNED' && taskStatus === 'UNASSIGNED') continue;
         if (assignedFilter === 'UNASSIGNED' && taskStatus !== 'UNASSIGNED') continue;
+
+        if (staffFilter.length > 0) {
+          if (!assignment || !staffFilter.includes(assignment.staffId)) continue;
+        }
 
         const assignedStaff = assignment ? staffMap.get(assignment.staffId) : null;
         
@@ -826,11 +844,11 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
         });
     }
     return filtered;
-  }, [customers, assignments, staff, searchTerm, statusFilter, activeCategory, activeBatch, revenueRange, territoryFilter, regionFilter, batches, mode, assignedFilter]);
+  }, [customers, assignments, staff, searchTerm, statusFilter, activeCategory, activeBatch, revenueRange, territoryFilter, regionFilter, batches, mode, assignedFilter, communeFilter, hamletFilter, staffFilter]);
 
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, statusFilter, activeCategory, activeBatch, revenueRange, territoryFilter, regionFilter, assignedFilter]);
+  }, [searchTerm, statusFilter, activeCategory, activeBatch, revenueRange, territoryFilter, regionFilter, assignedFilter, communeFilter, hamletFilter, staffFilter]);
 
   React.useEffect(() => {
     if (assignDialogOpen) {
@@ -869,6 +887,55 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
     });
     return Array.from(set).sort();
   }, [customers, activeCategory, activeBatch]);
+
+  const uniqueCommunes = React.useMemo(() => {
+    const set = new Set<string>();
+    customers.forEach(c => {
+      const addr = c.addressDetail || c.address || '';
+      const parts = addr.split(',').map(p => p.trim());
+      parts.forEach(part => {
+        const lower = part.toLowerCase();
+        if (
+          lower.startsWith('xã ') || 
+          lower.startsWith('phường ') || 
+          lower.startsWith('thị trấn ')
+        ) {
+          const clean = part.replace(/^(xã|phường|thị trấn)\s+/i, (match) => {
+            return match.charAt(0).toUpperCase() + match.slice(1).toLowerCase();
+          });
+          set.add(clean);
+        }
+      });
+    });
+    return Array.from(set).sort();
+  }, [customers]);
+
+  const uniqueHamlets = React.useMemo(() => {
+    const set = new Set<string>();
+    customers.forEach(c => {
+      const addr = c.addressDetail || c.address || '';
+      const parts = addr.split(',').map(p => p.trim());
+      parts.forEach(part => {
+        const lower = part.toLowerCase();
+        if (
+          lower.startsWith('thôn ') || 
+          lower.startsWith('ấp ') || 
+          lower.startsWith('bản ') || 
+          lower.startsWith('xóm ') || 
+          lower.startsWith('tổ ') ||
+          lower.startsWith('phố ') || 
+          lower.startsWith('đường ') ||
+          lower.startsWith('đội ')
+        ) {
+          const clean = part.replace(/^(thôn|ấp|bản|xóm|tổ|phố|đường|đội)\s+/i, (match) => {
+            return match.charAt(0).toUpperCase() + match.slice(1).toLowerCase();
+          });
+          set.add(clean);
+        }
+      });
+    });
+    return Array.from(set).sort();
+  }, [customers]);
 
   const handleDownloadTemplate = () => {
     const ws = XLSX.utils.json_to_sheet([
@@ -1764,7 +1831,7 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
                       >
                         <Filter className="w-4 h-4" />
                         Lọc nâng cao
-                        {(revenueRange !== 'ALL' || regionFilter.length > 0 || territoryFilter.length > 0 || assignedFilter !== 'ALL') && (
+                        {(revenueRange !== 'ALL' || regionFilter.length > 0 || territoryFilter.length > 0 || assignedFilter !== 'ALL' || communeFilter !== '' || hamletFilter !== '' || staffFilter.length > 0) && (
                           <span className="ml-1 w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
                         )}
                       </Button>
@@ -1789,7 +1856,7 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
                         transition={{ duration: 0.2 }}
                         className="overflow-hidden mb-6"
                       >
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 p-5 bg-blue-50/40 border border-blue-100/50 rounded-2xl">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4 p-5 bg-blue-50/40 border border-blue-100/50 rounded-2xl">
                           {/* Filter: Assigned status */}
                           <div className="flex flex-col gap-1.5">
                             <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Phân giao nhiệm vụ</label>
@@ -1895,6 +1962,100 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
                                     className="text-[11px] font-bold py-2"
                                   >
                                     {t}
+                                  </DropdownMenuCheckboxItem>
+                                ))}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+
+                          {/* Filter: Xã / Phường */}
+                          <div className="flex flex-col gap-1.5">
+                            <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Xã / Phường</label>
+                            <div className="relative w-full">
+                              <Input 
+                                list="commune-suggestions"
+                                value={communeFilter}
+                                onChange={(e) => setCommuneFilter(e.target.value)}
+                                placeholder="Nhập tên xã/phường..."
+                                className="w-full bg-white border-slate-200 h-10 rounded-xl font-bold text-[11px] uppercase pr-8 shadow-sm focus-visible:ring-1 focus-visible:ring-blue-400 placeholder:text-slate-400"
+                              />
+                              {communeFilter && (
+                                <button 
+                                  onClick={() => setCommuneFilter('')}
+                                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 font-bold text-xs"
+                                >
+                                  ✕
+                                </button>
+                              )}
+                              <datalist id="commune-suggestions">
+                                {uniqueCommunes.map(c => (
+                                  <option key={c} value={c} />
+                                ))}
+                              </datalist>
+                            </div>
+                          </div>
+
+                          {/* Filter: Thôn / Xóm / Phố */}
+                          <div className="flex flex-col gap-1.5">
+                            <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Thôn / Xóm / Phố</label>
+                            <div className="relative w-full">
+                              <Input 
+                                list="hamlet-suggestions"
+                                value={hamletFilter}
+                                onChange={(e) => setHamletFilter(e.target.value)}
+                                placeholder="Nhập tên thôn/xóm/phố..."
+                                className="w-full bg-white border-slate-200 h-10 rounded-xl font-bold text-[11px] uppercase pr-8 shadow-sm focus-visible:ring-1 focus-visible:ring-blue-400 placeholder:text-slate-400"
+                              />
+                              {hamletFilter && (
+                                <button 
+                                  onClick={() => setHamletFilter('')}
+                                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 font-bold text-xs"
+                                >
+                                  ✕
+                                </button>
+                              )}
+                              <datalist id="hamlet-suggestions">
+                                {uniqueHamlets.map(h => (
+                                  <option key={h} value={h} />
+                                ))}
+                              </datalist>
+                            </div>
+                          </div>
+
+                          {/* Filter: Nhân sự thực hiện */}
+                          <div className="flex flex-col gap-1.5">
+                            <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Nhân sự thực hiện</label>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger
+                                render={
+                                  <Button variant="outline" className="w-full bg-white border-slate-200 h-10 rounded-xl font-bold text-[11px] uppercase justify-between font-sans shadow-sm">
+                                    <span className="truncate">
+                                      {staffFilter.length === 0 ? "Tất cả nhân sự" : `Đã chọn: ${staffFilter.length}`}
+                                    </span>
+                                    <ChevronDown className="h-4 w-4 opacity-50 shrink-0" />
+                                  </Button>
+                                }
+                              />
+                              <DropdownMenuContent className="w-auto max-w-[400px] min-w-[240px] rounded-xl max-h-[320px] overflow-y-auto custom-scrollbar" align="start">
+                                <DropdownMenuCheckboxItem
+                                  checked={staffFilter.length === 0}
+                                  onCheckedChange={() => setStaffFilter([])}
+                                  className="text-[11px] font-bold py-2"
+                                >
+                                  Tất cả nhân sự
+                                </DropdownMenuCheckboxItem>
+                                {staff.map(s => (
+                                  <DropdownMenuCheckboxItem
+                                    key={s.id}
+                                    checked={staffFilter.includes(s.id)}
+                                    onCheckedChange={(checked) => {
+                                      setStaffFilter(prev => 
+                                        checked ? [...prev, s.id] : prev.filter(x => x !== s.id)
+                                      )
+                                    }}
+                                    className="text-[11px] font-bold py-2 uppercase"
+                                  >
+                                    {s.name}
                                   </DropdownMenuCheckboxItem>
                                 ))}
                               </DropdownMenuContent>
