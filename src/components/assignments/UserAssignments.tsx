@@ -1920,13 +1920,15 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
                   <div className="flex flex-wrap items-center gap-2 w-full xl:w-auto">
                       {mode === 'LIST' && (
                         <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="outline" className="border-slate-200 h-9 text-[10px] font-black uppercase tracking-wider text-slate-600 rounded-xl hover:bg-slate-50 shadow-sm">
-                              <Settings className="w-4 h-4 mr-2 text-slate-500" />
-                              Công cụ dữ liệu
-                              <ChevronDown className="w-3.5 h-3.5 ml-1.5 opacity-60" />
-                            </Button>
-                          </DropdownMenuTrigger>
+                          <DropdownMenuTrigger
+                            render={
+                              <Button variant="outline" className="border-slate-200 h-9 text-[10px] font-black uppercase tracking-wider text-slate-600 rounded-xl hover:bg-slate-50 shadow-sm">
+                                <Settings className="w-4 h-4 mr-2 text-slate-500" />
+                                Công cụ dữ liệu
+                                <ChevronDown className="w-3.5 h-3.5 ml-1.5 opacity-60" />
+                              </Button>
+                            }
+                          />
                           <DropdownMenuContent className="w-56 rounded-2xl p-1.5 shadow-xl border border-slate-100" align="end">
                             <span className="block px-2 py-1 text-[8px] font-black uppercase tracking-wider text-slate-400 font-sans">Quản lý khách hàng</span>
                             <DropdownMenuItem onClick={() => setAddCustomerDialogOpen(true)} className="text-xs font-bold py-2.5 px-3 rounded-xl text-emerald-600 focus:text-emerald-700 focus:bg-emerald-50 cursor-pointer flex items-center gap-2">

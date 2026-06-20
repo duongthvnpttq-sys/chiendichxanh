@@ -226,7 +226,7 @@ function renderPage(page: string, onNavigate: (page: string) => void, userRole: 
   const allowedRoles = getRoutePermissions()[page] || ['admin'];
   if (!allowedRoles.map((r: string) => r.toLowerCase()).includes(userRole.toLowerCase())) {
     return (
-      <div className="flex flex-col items-center justify-center h-full min-h-[400px] bg-slate-50 rounded-3xl m-6 border border-dashed border-slate-200">
+      <div className="flex flex-col items-center justify-center h-full min-h-[400px] bg-white/75 backdrop-blur-md rounded-3xl m-6 border border-blue-100 shadow-[0_8px_30px_rgb(0,91,170,0.04)]">
         <Lock className="w-16 h-16 text-slate-300 mb-4" />
         <h2 className="text-xl font-black uppercase text-slate-700 tracking-tight">Không có quyền truy cập</h2>
         <p className="text-sm font-medium text-slate-500 mt-2">Tính năng này được kiểm soát bởi phân quyền hệ thống.</p>
