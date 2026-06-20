@@ -291,10 +291,70 @@ select:focus,
   .text-red-400, .text-red-500, .text-red-600, .text-red-700 { color: var(--brand-red) !important; }
   .text-blue-400, .text-blue-500, .text-blue-600, .text-blue-700, .text-indigo-500, .text-indigo-600 { color: var(--brand-blue) !important; }
   .text-orange-400, .text-orange-500, .text-orange-600, .text-orange-700 { color: var(--brand-orange) !important; }
-  .text-green-400, .text-green-500, .text-green-600, .text-green-700, .text-emerald-400, .text-emerald-500, .text-emerald-600, .text-emerald-700 { color: var(--brand-green) !important; }
+  .text-green-400, .text-green-500, .text-green-600, .text-green-700, .text-emerald-400, .text-emerald-500, .text-emerald-600, .text-emerald-750 { color: var(--brand-green) !important; }
   
   .bg-red-400, .bg-red-500, .bg-red-600, .bg-red-700 { background-color: var(--brand-red) !important; }
   .bg-blue-400, .bg-blue-500, .bg-blue-600, .bg-blue-700, .bg-indigo-500, .bg-indigo-600 { background-color: var(--brand-blue) !important; }
   .bg-orange-400, .bg-orange-500, .bg-orange-600, .bg-orange-700 { background-color: var(--brand-orange) !important; }
   .bg-green-400, .bg-green-500, .bg-green-600, .bg-green-700, .bg-emerald-400, .bg-emerald-500, .bg-emerald-600, .bg-emerald-700 { background-color: var(--brand-green) !important; }
+
+  /* Industry 4.0 High-Tech UI Utilities */
+  .tech-dots {
+    background-image: radial-gradient(rgba(0, 91, 170, 0.08) 1.2px, transparent 1.2px);
+    background-size: 20px 20px;
+  }
+
+  .tech-grid {
+    background-size: 40px 40px;
+    background-image: 
+      linear-gradient(to right, rgba(0, 91, 170, 0.03) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(0, 91, 170, 0.03) 1px, transparent 1px);
+  }
+
+  .tech-glass-panel {
+    background: rgba(255, 255, 255, 0.82);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(160, 197, 232, 0.45);
+    box-shadow: 
+      0 4px 20px -2px rgba(0, 91, 170, 0.04),
+      0 2px 6px -1px rgba(0, 91, 170, 0.02),
+      inset 0 1px 2px rgba(255, 255, 255, 0.8);
+  }
+
+  .tech-gradient-text {
+    background-image: linear-gradient(135deg, #1c4b82 30%, #0074db 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .glow-accent-blue {
+    box-shadow: 0 0 12px 1px rgba(0, 91, 170, 0.15);
+  }
+
+  .glow-accent-emerald {
+    box-shadow: 0 0 12px 1px rgba(82, 196, 26, 0.18);
+  }
+
+  /* Futuristic pulsing effect for indicators */
+  .tech-pulse {
+    box-shadow: 0 0 0 0 rgba(0, 91, 170, 0.4);
+    animation: tech-pulse-anim 2s infinite;
+  }
+
+  @keyframes tech-pulse-anim {
+    0% {
+      transform: scale(0.95);
+      box-shadow: 0 0 0 0 rgba(0, 91, 170, 0.4);
+    }
+    70% {
+      transform: scale(1);
+      box-shadow: 0 0 0 8px rgba(0, 91, 170, 0);
+    }
+    100% {
+      transform: scale(0.95);
+      box-shadow: 0 0 0 0 rgba(0, 91, 170, 0);
+    }
+  }
 }

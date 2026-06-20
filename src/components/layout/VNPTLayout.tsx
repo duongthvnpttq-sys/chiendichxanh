@@ -317,7 +317,12 @@ export default function VNPTLayout({ children, userRole, userName, onNavigate, c
       </motion.aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col overflow-hidden relative bg-gradient-to-tr from-[#edf3f8] via-[#f5f8fc] to-[#e4effa]">
+      <main className="flex-1 flex flex-col overflow-hidden relative bg-gradient-to-tr from-[#edf3f8] via-[#f5f8fc] to-[#e4effa] tech-grid">
+        {/* Futuristic background overlay visual design */}
+        <div className="absolute inset-0 tech-dots pointer-events-none opacity-45" />
+        <div className="absolute top-1/4 left-1/4 w-[450px] h-[450px] bg-[#005baa]/5 rounded-full blur-[130px] pointer-events-none" />
+        <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-[#06b6d4]/6 rounded-full blur-[120px] pointer-events-none" />
+
         {/* Header */}
         <header className={cn(
           "bg-gradient-to-b from-[#fbfcff] to-[#e8f1f8] text-[#1c4b82] flex items-center justify-between px-6 border-b border-[#a0c5e8] shadow-sm z-40 shrink-0 relative overflow-hidden transition-all duration-300",

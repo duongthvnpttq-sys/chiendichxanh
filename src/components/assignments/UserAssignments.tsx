@@ -913,15 +913,21 @@ toast.error("Không có dữ liệu khách hàng nào khớp với lựa chọn 
 
   const uniqueTerritories = React.useMemo(() => {
     const set = new Set<string>();
+    
+    // Add all system-defined territories first
+    territories.forEach(t => {
+      if (t.name) set.add(t.name);
+    });
+
+    // Add unique territories from customers
     customers.forEach(c => {
-      const matchesCategory = activeCategory === 'all' || c.categoryId === activeCategory;
-      const matchesBatch = activeBatch === 'all' || c.campaignId === activeBatch;
-      if (matchesCategory && matchesBatch && c.territory) {
+      if (c.territory) {
         set.add(c.territory);
       }
     });
+
     return Array.from(set).sort();
-  }, [customers, activeCategory, activeBatch]);
+  }, [customers, territories]);
 
   const uniqueCommunes = React.useMemo(() => {
     const set = new Set<string>();

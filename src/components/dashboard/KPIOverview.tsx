@@ -355,13 +355,13 @@ export default function KPIOverview() {
       </div>
 
       {/* TOP ROW: 3 CARDS */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         
         {/* Card 1: Tổng số nhiệm vụ */}
-        <div className="bg-white border rounded shadow-sm flex flex-col p-5">
-           <div className="text-center rounded bg-red-50/50 border border-red-100 p-4 mb-6">
-              <h3 className="text-[14px] font-semibold text-slate-800 uppercase">TỔNG SỐ NHIỆM VỤ NĂM {selectedYear}</h3>
-              <div className="text-[46px] font-bold text-[#e11d48] leading-tight mt-1">{totalAssignments}</div>
+        <div className="tech-glass-panel rounded-2xl flex flex-col p-5 hover:shadow-[0_12px_36px_rgba(0,91,170,0.06)] transition-all duration-300">
+           <div className="text-center rounded-xl bg-red-500/[0.04] border border-red-500/10 p-4 mb-6">
+              <h3 className="text-[13px] font-black text-slate-800 uppercase tracking-wider tech-gradient-text font-heading">TỔNG SỐ NHIỆM VỤ NĂM {selectedYear}</h3>
+              <div className="text-[46px] font-black text-[#e11d48] leading-tight mt-1 filter drop-shadow-sm">{totalAssignments}</div>
            </div>
            
            <div className="space-y-4 mb-6 flex-1">
@@ -370,18 +370,18 @@ export default function KPIOverview() {
                     <div className="text-emerald-500">
                        <CheckCircle2 className="w-5 h-5" />
                     </div>
-                    <span className="text-[14px] font-medium text-slate-800">Đã hoàn thành</span>
+                    <span className="text-[14px] font-semibold text-slate-700">Đã hoàn thành</span>
                  </div>
-                 <span className="text-[22px] font-bold text-emerald-500">{successCount}</span>
+                 <span className="text-[22px] font-black text-emerald-500">{successCount}</span>
               </div>
               <div className="flex items-center justify-between">
                  <div className="flex items-center gap-3">
                     <div className="text-orange-500">
                        <FileSignature className="w-5 h-5" />
                     </div>
-                    <span className="text-[14px] font-medium text-slate-800">Chưa hoàn thành</span>
+                    <span className="text-[14px] font-semibold text-slate-700">Chưa hoàn thành</span>
                  </div>
-                 <span className="text-[22px] font-bold text-orange-500">{activeTasks}</span>
+                 <span className="text-[22px] font-black text-orange-500">{activeTasks}</span>
               </div>
            </div>
 
@@ -398,8 +398,8 @@ export default function KPIOverview() {
         </div>
 
         {/* Card 2: Nhiệm vụ tháng */}
-        <div className="bg-white border rounded shadow-sm p-5 flex flex-col relative">
-           <h3 className="text-[15px] font-bold text-slate-800 mb-1">Nhiệm vụ tháng {selectedMonth}/{selectedYear}</h3>
+        <div className="tech-glass-panel rounded-2xl p-5 flex flex-col relative hover:shadow-[0_12px_36px_rgba(0,91,170,0.06)] transition-all duration-300">
+           <h3 className="text-[15px] font-black tracking-tight text-slate-800 mb-1 font-heading tech-gradient-text">Nhiệm vụ tháng {selectedMonth}/{selectedYear}</h3>
            <p className="text-[13px] font-medium text-[#c2410c]">{totalAssignments} Nhiệm vụ</p>
            
            <div className="flex-1 w-full relative min-h-[240px] flex items-center justify-center mt-2">
@@ -442,10 +442,10 @@ export default function KPIOverview() {
         </div>
 
         {/* Card 3: Thông báo chương trình */}
-        <div className="bg-white border rounded shadow-sm p-5 flex flex-col">
+        <div className="tech-glass-panel rounded-2xl p-5 flex flex-col hover:shadow-[0_12px_36px_rgba(0,91,170,0.06)] transition-all duration-300">
            <h3 className="text-[15px] font-bold text-slate-800 mb-4 flex items-center gap-2">
               Thông báo Chiến dịch tháng {selectedMonth}/{selectedYear}
-              <span className="bg-blue-600 text-white text-[12px] w-6 h-6 rounded-full flex items-center justify-center font-bold">{String(programNotifications.length).padStart(2, '0')}</span>
+              <span className="bg-blue-600 text-white text-[12px] w-6 h-6 rounded-full flex items-center justify-center font-bold tracking-tight glow-accent-blue">{String(programNotifications.length).padStart(2, '0')}</span>
            </h3>
            
            <div className="flex-1 space-y-4">
@@ -485,42 +485,42 @@ export default function KPIOverview() {
       {/* POTENTIAL CUSTOMERS SECTION */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 my-6">
         {/* Card 1: Đã Thu Thập */}
-        <div className="bg-[#f2f8ff] border border-[#e0effe] rounded-xl p-5 relative overflow-hidden flex flex-col justify-center items-center shadow-sm">
-           <TrendingUp className="w-24 h-24 text-blue-100 absolute -right-4 -bottom-4 opacity-50" strokeWidth={1.5} />
+        <div className="bg-gradient-to-br from-[#f2f8ff] to-[#e0effe]/60 border border-[#b9ddff] rounded-2xl p-5 relative overflow-hidden flex flex-col justify-center items-center shadow-sm hover:shadow-md transition-all duration-300">
+           <TrendingUp className="w-24 h-24 text-blue-100 absolute -right-3 -bottom-3 opacity-40 pointer-events-none" strokeWidth={1.5} />
            <div className="relative z-10 text-center flex flex-col items-center">
-              <span className="text-[12px] font-bold text-blue-600 uppercase tracking-widest mb-1">Đã thu thập</span>
-              <span className="text-[40px] font-black text-[#0f54a8] leading-none">{potentialStats.new}</span>
+              <span className="text-[12px] font-black text-blue-600 uppercase tracking-widest mb-1.5 font-sans">Đã thu thập</span>
+              <span className="text-[40px] font-black text-[#0f54a8] leading-none filter drop-shadow-[0_2px_4px_rgba(0,91,170,0.05)]">{potentialStats.new}</span>
            </div>
         </div>
 
         {/* Card 2: Đã Tiếp Xúc / Tư Vấn */}
-        <div className="bg-[#fff9eb] border border-[#ffedd5] rounded-xl p-5 relative overflow-hidden flex flex-col justify-center items-center shadow-sm">
-           <Phone className="w-24 h-24 text-orange-100 absolute -right-4 -bottom-4 opacity-50" strokeWidth={1.5} />
+        <div className="bg-gradient-to-br from-[#fffdf5] to-[#fff3df]/60 border border-[#fedba5] rounded-2xl p-5 relative overflow-hidden flex flex-col justify-center items-center shadow-sm hover:shadow-md transition-all duration-300">
+           <Phone className="w-24 h-24 text-orange-100 absolute -right-3 -bottom-3 opacity-40 pointer-events-none" strokeWidth={1.5} />
            <div className="relative z-10 text-center flex flex-col items-center">
-              <span className="text-[12px] font-bold text-orange-600 uppercase tracking-widest mb-1">Đã tiếp xúc / tư vấn</span>
-              <span className="text-[40px] font-black text-[#c2410c] leading-none">{potentialStats.contacted}</span>
+              <span className="text-[12px] font-black text-orange-600 uppercase tracking-widest mb-1.5 font-sans">Đã tiếp xúc / tư vấn</span>
+              <span className="text-[40px] font-black text-[#c2410c] leading-none filter drop-shadow-[0_2px_4px_rgba(194,65,12,0.05)]">{potentialStats.contacted}</span>
            </div>
         </div>
 
         {/* Card 3: Chốt Thành Công */}
-        <div className="bg-[#f0fdf4] border border-[#dcfce7] rounded-xl p-5 relative overflow-hidden flex flex-col justify-center items-center shadow-sm">
-           <Target className="w-24 h-24 text-green-100 absolute -right-4 -bottom-4 opacity-50" strokeWidth={1.5} />
+        <div className="bg-gradient-to-br from-[#f5fdf7] to-[#e4fcf0]/60 border border-[#bbecd1] rounded-2xl p-5 relative overflow-hidden flex flex-col justify-center items-center shadow-sm hover:shadow-md transition-all duration-300">
+           <Target className="w-24 h-24 text-green-100 absolute -right-3 -bottom-3 opacity-40 pointer-events-none" strokeWidth={1.5} />
            <div className="relative z-10 text-center flex flex-col items-center">
-              <span className="text-[12px] font-bold text-teal-700 uppercase tracking-widest mb-1">Chốt thành công (Ký HĐ)</span>
-              <span className="text-[40px] font-black text-[#047857] leading-none">{potentialStats.converted}</span>
+              <span className="text-[12px] font-black text-teal-700 uppercase tracking-widest mb-1.5 font-sans">Chốt thành công (Ký HĐ)</span>
+              <span className="text-[40px] font-black text-[#047857] leading-none filter drop-shadow-[0_2px_4px_rgba(4,120,87,0.05)]">{potentialStats.converted}</span>
            </div>
         </div>
       </div>
 
       {/* MIDDLE ROW: Bar chart and Leaderboard */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
          {/* Bar Charts (Col span 2) */}
-         <div className="lg:col-span-2 bg-white border rounded shadow-sm p-5 flex flex-col">
+         <div className="lg:col-span-2 tech-glass-panel rounded-2xl p-5 flex flex-col hover:shadow-[0_12px_36px_rgba(0,91,170,0.06)] transition-all duration-300">
             <div className="flex justify-between items-center mb-6">
                 <div>
-                   <h3 className="text-[16px] font-bold text-slate-800 inline-flex items-center gap-3">
+                   <h3 className="text-[16px] font-black text-slate-800 inline-flex items-center gap-3 font-heading tech-gradient-text uppercase">
                        Thống kê tình hình công việc tháng {selectedMonth}/{selectedYear} 
-                       <span className="border border-slate-300 text-slate-600 text-[12px] px-3 py-0.5 rounded-full font-medium">Tổng số công việc: {totalAssignments}</span>
+                       <span className="border border-blue-200 text-[#005BAA] bg-blue-100/50 text-[11px] px-3 py-0.5 rounded-full font-bold">Tổng số công việc: {totalAssignments}</span>
                    </h3>
                 </div>
                 <button 
@@ -597,10 +597,10 @@ export default function KPIOverview() {
          </div>
 
          {/* Leaderboard (Col span 1) */}
-         <div className="bg-white border rounded shadow-sm p-4 flex flex-col">
+         <div className="tech-glass-panel rounded-2xl p-5 flex flex-col hover:shadow-[0_12px_36px_rgba(0,91,170,0.06)] transition-all duration-300">
              <div className="mb-4 text-slate-800">
-                <h3 className="text-[15px] font-bold">Top 5 nhân viên xuất sắc tháng {selectedMonth}/{selectedYear}</h3>
-                <p className="text-[12px] italic text-slate-500">(chu kỳ gần nhất)</p>
+                <h3 className="text-[15px] font-black font-heading tech-gradient-text uppercase">Top 5 nhân viên xuất sắc tháng {selectedMonth}/{selectedYear}</h3>
+                <p className="text-[12px] italic text-slate-500 font-medium">(chu kỳ gần nhất)</p>
              </div>
              
              <div className="flex-1 space-y-0 relative pt-2">
@@ -647,12 +647,12 @@ export default function KPIOverview() {
       </div>
 
       {/* BOTTOM ROW: Detailed Tracking Table styled exactly like the request */}
-      <div id="details-section" className="bg-white border rounded shadow-sm flex flex-col p-5">
-         <div className="mb-4 pb-2 border-b border-slate-100">
-             <h3 className="text-[15px] font-bold text-slate-800 uppercase tracking-wide">
+      <div id="details-section" className="tech-glass-panel rounded-2xl flex flex-col p-5 hover:shadow-[0_12px_36px_rgba(0,91,170,0.06)] transition-all duration-300">
+         <div className="mb-4 pb-2 border-b border-blue-100">
+             <h3 className="text-[15px] font-black text-slate-800 uppercase tracking-wider font-heading tech-gradient-text">
                 Chi tiết tình trạng đánh giá, xếp loại các nhóm nhiệm vụ (Tháng {selectedMonth}/{selectedYear})
              </h3>
-             <p className="text-[12px] text-slate-500 mt-1 italic">(chu kỳ gần nhất)</p>
+             <p className="text-[12px] text-slate-500 mt-1 italic font-medium">(chu kỳ gần nhất)</p>
          </div>
          
          <div className="w-full overflow-x-auto custom-scrollbar">
